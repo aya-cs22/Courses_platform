@@ -251,43 +251,65 @@ exports.addUser = async (req, res) => {
   };
   
   
+  
   exports.updateUser = async (req, res) => {
     try {
-      const { id } = req.params;
-      const { name, email, role } = req.body;
-      const updates = {};
-      if (req.user.id !== id && req.user.role !== 'admin') {
-        return res.status(403).json({ message: 'Access denied' });
-      }
-      if (req.user.id === id) {
-        if (name) updates.name = name;
-        if (email) updates.email = email;
-        if (req.body.password) updates.password = req.body.password; 
-        if (role) {
-          return res.status(403).json({ message: 'You cannot change your role' });
+        const { id } = req.params;
+        const { name, email, password, role } = req.body;
+        const updates = {};
+
+        if (req.user.id !== id && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied' });
         }
-      }
-      if (req.user.role === 'admin') {
-        if (name) updates.name = name;
-        if (email) updates.email = email;
-        if (role) updates.role = role;
-        if (req.body.password) {
-          return res.status(403).json({ message: 'Admin cannot change user password' });
+
+        if (req.user.id === id) {
+            if (name) updates.name = name;
+            if (email) {
+                const existingUser = await User.findOne({ email });
+                if (existingUser && existingUser.id !== id) {
+                    return res.status(400).json({ message: 'Email already exists' });
+                }
+                updates.email = email;
+            }
+
+            if (password) {
+                const salt = await bcrypt.genSalt(10);
+                updates.password = await bcrypt.hash(password, salt);
+            }
+
+            if (role) {
+                return res.status(403).json({ message: 'You cannot change your role' });
+            }
         }
-      }
-  
-      const user = await User.findByIdAndUpdate(id, updates, { new: true });
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-  
-      res.status(200).json(user);
+
+        if (req.user.role === 'admin') {
+            if (name) updates.name = name;
+            if (email) {
+                const existingUser = await User.findOne({ email });
+                if (existingUser && existingUser.id !== id) {
+                    return res.status(400).json({ message: 'Email already exists' });
+                }
+                updates.email = email;
+            }
+            if (role) updates.role = role;
+            if (password) {
+                const salt = await bcrypt.genSalt(10);
+                updates.password = await bcrypt.hash(password, salt);
+            }
+        }
+
+        const user = await User.findByIdAndUpdate(id, updates, { new: true });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json(user);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
     }
-  };
-  
+};
+ 
   
   exports.deleteUser = async (req, res) => {
     try {

@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,
     enum: ['user', 'admin'],
-    default: 'user'
+    default: 'admin'
   },
   emailVerificationCode: { // Email verification code, set when a verification code is sent to the user.
     type: String,
