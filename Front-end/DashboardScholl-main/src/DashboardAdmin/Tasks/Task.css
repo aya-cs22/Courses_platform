@@ -1,0 +1,32 @@
+
+table th ,td{
+    padding: 10px;
+}
+@media (max-width:991px) {
+    table th {
+        font-size: 12px;
+    }  
+    table td {
+        font-size: 10px;
+    }
+    table td input {
+        font-size: 10px;
+    }  
+    table th ,td{
+        padding: 5px;
+    }
+}
+@media (max-width:660px) {
+    table th {
+        font-size: 8px;
+    }  
+    table td {
+        font-size: 8px;
+    }
+    table td input {
+        font-size: 5px;
+    }  
+    table th ,td{
+        padding: 3px;
+    }
+}

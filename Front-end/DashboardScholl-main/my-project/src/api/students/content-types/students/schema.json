@@ -1,0 +1,28 @@
+{
+  "kind": "collectionType",
+  "collectionName": "student_data",
+  "info": {
+    "singularName": "students",
+    "pluralName": "student-data",
+    "displayName": "register",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "email",
+      "required": true
+    },
+    "password": {
+      "type": "password",
+      "required": true
+    }
+  }
+}

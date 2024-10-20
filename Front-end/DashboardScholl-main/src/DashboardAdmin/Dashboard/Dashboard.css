@@ -1,0 +1,55 @@
+
+body{
+    overflow-x: hidden;
+  
+}
+ul {
+    list-style: none;
+    color: white;
+}
+a{
+    color: white;
+    text-decoration: none;
+}
+/* a:hover{
+    color:orange;
+} */
+button{
+  background-color: #f9bc60;
+}
+li{
+    margin: 10px;
+}
+.ulShow{
+    display: none;
+    transition: 0.5s;
+}
+.dashboard-left{
+    background-color:#004643;
+    color: white;
+    height: 100vh;
+    transition: 0.6s;
+    /* padding: 20px; */
+}
+.toggle{
+    position: absolute;
+    transform: translateX(-100%);
+    transition: 0.5s ;
+    z-index: 999;
+}
+.toggleMenu{
+    position: fixed;
+    top: 20px;
+    right: -10px;
+    display: none;
+}
+li > button:hover{
+    /* position: relative;
+    left: 5px; */
+    transition: 0.5s;
+}
+@media (max-width:767px){
+    .toggleMenu{
+        display: block;
+    }
+}

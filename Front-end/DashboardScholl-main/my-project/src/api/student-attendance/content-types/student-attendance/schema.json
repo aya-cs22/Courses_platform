@@ -1,0 +1,23 @@
+{
+  "kind": "collectionType",
+  "collectionName": "student_attendances",
+  "info": {
+    "singularName": "student-attendance",
+    "pluralName": "student-attendances",
+    "displayName": "student-attendance"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "group": {
+      "required": false,
+      "type": "date"
+    }
+  }
+}
