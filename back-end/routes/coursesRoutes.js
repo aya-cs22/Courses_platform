@@ -11,3 +11,4 @@ router.put('/:id', authMiddleware, coursesController.updateCourseById);
 router.delete('/:id', authMiddleware, coursesController.deleteCourseById);
 
 module.exports = router;
+.
