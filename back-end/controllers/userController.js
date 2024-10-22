@@ -12,12 +12,22 @@ const generateVerificationCode = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+
 exports.register = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, phone_number } = req.body;
 
         if (!password) {
             return res.status(400).json({ message: 'Password is required' });
+        }
+
+        if(!phone_number){
+            return res.status(400).json({ message: 'phone number is required'});
+        }
+
+        // Validate the phone number
+        if (!validatePhoneNumber(phone_number)) {
+            return res.status(400).json({ message: 'Invalid phone number format. It should be 10 digits long.' });
         }
 
         let user = await User.findOne({ email });
@@ -32,6 +42,7 @@ exports.register = async (req, res) => {
             name,
             email,
             password, // Consider hashing the password before saving
+            phone_number,
             isVerified: false,
             emailVerificationCode: generateVerificationCode(), // Call the function to get a code
             verificationCodeExpiry: new Date(Date.now() + EMAIL_VERIFICATION_TIMEOUT)
@@ -60,6 +71,12 @@ exports.register = async (req, res) => {
         res.status(500).json({ message: 'Server error' }); 
     }
 };
+
+function validatePhoneNumber(phone_number) {
+    const phoneRegex = /^\d{11}$/;
+    return phoneRegex.test(phone_number);
+};
+
 exports.verifyEmail = async (req, res) => {
     try {
         const { email, code } = req.body;
@@ -93,45 +110,6 @@ exports.verifyEmail = async (req, res) => {
     }
 };
 
-exports.login = async(req, res) => {
-    try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(400).json({ message: 'Invalid email or password' });
-        }
-
-        // استخدم bcrypt للمقارنة بين كلمة المرور المدخلة وكلمة المرور المجزأة في قاعدة البيانات
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Invalid email or password' });
-        }
-
-        if (!user.isVerified) {
-            return res.status(400).json({ message: 'Please verify your email first' });
-        }
-
-        const token = jwt.sign(
-            { id: user._id, role: user.role },
-            process.env.JWT_SECRET,
-            { expiresIn: '3h' }
-        );
-
-        res.status(200).json({
-            message: 'Login successful',
-            token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
-        });
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ message: 'Server error' });
-    }
-};
 
 exports.login = async(req, res) => {
     try{
