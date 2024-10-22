@@ -69,6 +69,7 @@ exports.attendLecture = async (req, res) => {
   }
 };
 
+
 exports.getUserAttendanceCount = async (req, res) => {
   try {
       console.log('User object:', req.user);
@@ -77,7 +78,6 @@ exports.getUserAttendanceCount = async (req, res) => {
       }
 
       const userId = req.user._id;
-
       const lectures = await Lectures.find({ attendees: userId });
 
       const attendanceCounts = lectures.map(lecture => ({
@@ -86,7 +86,12 @@ exports.getUserAttendanceCount = async (req, res) => {
           attendanceCount: lecture.attendanceCount
       }));
 
-      return res.status(200).json(attendanceCounts);
+      const totalAttendanceCount = attendanceCounts.reduce((total, lecture) => total + lecture.attendanceCount, 0);
+
+      return res.status(200).json({
+          attendanceCounts,
+          totalAttendanceCount 
+      });
   } catch (error) {
       console.error('Error in getUserAttendanceCount:', error);
       return res.status(500).json({ error: 'An error occurred while fetching attendance count.' });
