@@ -24,10 +24,16 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false // user need to virify your email
   },
+  phone_number: {
+    type: String,
+    required: true
+  },
   role: {
     type: String,
     enum: ['user', 'admin'],
-    default: 'admin'
+    default: function() {
+      return this.email === process.env.ADMIN_EMAIL ? 'admin' : 'user';
+    }
   },
   emailVerificationCode: { // Email verification code, set when a verification code is sent to the user.
     type: String,
@@ -37,6 +43,8 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  attendedLectures: [{type: mongoose.Schema.Types.ObjectId, ref: 'Lecture' }], 
+  qrCodes: [{ type: String }],
   created_at: {
     type: Date,
     default: Date.now,

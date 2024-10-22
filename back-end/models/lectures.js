@@ -18,19 +18,24 @@ const lecturesSchema = new mongoose.Schema({
   },
   resources:{
     type:[String],
-    required: true
   },
   qr_code:{
     type: String,
-    required: true
+    // required: true
   },
   created_at: {
     type: Date,
     default: Date.now,
     },
+    attendees: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     updated_at: {
       type: Date,
       default: Date.now,
+    },
+
+    attendanceCount: {
+      type: Number,
+      default: 0
     },
 });
 lecturesSchema.pre('save', async function(next){

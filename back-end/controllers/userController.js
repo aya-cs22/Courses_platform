@@ -110,29 +110,27 @@ exports.verifyEmail = async (req, res) => {
     }
 };
 
-
 exports.login = async(req, res) => {
-    try{
-        const {email , password} = req.body;
+    try {
+        const { email, password } = req.body;
         const user = await User.findOne({ email });
-        if(!user){
-            return res.status(400).json({message: 'Invalid email or password'});
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid email or password' });
         }
 
-        // Use bcrypt to compare the password entered with the hashed password in the database
         const isMatch = await bcrypt.compare(password, user.password);
-        if(!isMatch){
-            return res.status(400).json({message: 'Invalid email or password'});
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Invalid email or password' });
         }
 
-        if(!user.isVerified){
-            return res.status(400).json({ message : 'Please verify your email first'});
+        if (!user.isVerified) {
+            return res.status(400).json({ message: 'Please verify your email first' });
         }
 
         const token = jwt.sign(
-            { id: user._id, role: user.role},
+            { id: user._id, role: user.role },
             process.env.JWT_SECRET,
-            { expiresIn: '3h'}
+            { expiresIn: '3h' }
         );
 
         res.status(200).json({
@@ -150,7 +148,6 @@ exports.login = async(req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
-
 exports.addUser = async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
