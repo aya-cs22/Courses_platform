@@ -25,6 +25,7 @@ import PrivateRoute from "./DashboardAdmin/PrivateRoute";
 // user
 import Register from "./DashboardAdmin/Users/Register";
 import LoginUser from "./DashboardAdmin/Users/Login";
+import Profile from "./DashboardAdmin/Users/Profile";
 import LectureQRCode from "./DashboardAdmin/Lectures/LectureQRCode";
 import FormQr from "./DashboardAdmin/Users/FormQr";
 
@@ -96,6 +97,10 @@ function App() {
     {
       path: "/login",
       element: <LoginUser />,
+    },
+    {
+      path: "/profile",
+      element: <Profile />,
     },
     {
       path: "/attendance?/:id",

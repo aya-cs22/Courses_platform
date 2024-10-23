@@ -7,33 +7,50 @@ import { Helmet } from "react-helmet-async";
 function Login() {
   const [login, setLogin] = useState({
     email: "",
-    passwordLogin: "",
+    password: "",
   });
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      const resposnse = await axios.post(
+      const res = await axios.post(
         "http://localhost:8000/api/users/login",
         {
           email: login.email,
-          password: login.passwordLogin,
-           role: "user"
+          password: login.password,
+
+        },
+        {
+          headers: {
+            "Content-Type": "application/json  ",
+          },
         }
       );
-      if (resposnse.data.jwt) {
-        // toast.success("Login successful!");
-        // setTimeout(()=>{
-        //   navigate("/admin");
-        // },2000)
+  
+      // console.log(res.data.token)
+      if (res.data.token) {
+        toast.success("Login successful!");
+        setTimeout(() => {
+          navigate("/profile");
+        }, 2000);
       } else {
         toast.error("Invalid email or password.");
       }
     } catch (error) {
       console.log("Error:" + error);
+      toast.error("Invalid email or password.");
+      setLoading(true);
+    } finally {
+      setTimeout(()=>{
+        setLoading(false);
+      },3000)
+      
     }
   };
+
 
   return (
     <>
@@ -57,18 +74,16 @@ function Login() {
             placeholder="Password"
             className="form-control border rounded mt-3 "
             required
-            onChange={(e) =>
-              setLogin({ ...login, passwordLogin: e.target.value })
-            }
+            onChange={(e) => setLogin({ ...login, password: e.target.value })}
           />
 
           <div className="mt-2 p-2">
-            <button className="btn btn-primary   d-block w-100 m-atuo">
-              Submit
+          <button className="btn btn-primary d-block w-100" disabled={loading}>
+              {loading ? "Loading..." : "Submit"}
             </button>
           </div>
 
-          <Link to={"/login"} className="text-decoration-underline p-2 mt-2">
+          <Link to={"/register"} className="text-decoration-underline p-2 mt-2">
             Sign up
           </Link>
         </form>
