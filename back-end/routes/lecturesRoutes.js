@@ -11,7 +11,7 @@ router.get('/attendance', authMiddleware, lecturesController.getUserAttendanceCo
 router.get('/', lecturesController.getAllLectures);
 router.get('/:id', lecturesController.getLecturesById);
 
-// router.put('/:id', authMiddleware, lecturesController.updateLecturesById);
-// router.delete('/:id', authMiddleware, lecturesController.deleteLecturesById);
+router.put('/:id', authMiddleware, lecturesController.updateLecturesById);
+router.delete('/:id', authMiddleware, lecturesController.deleteLecturesById);
 
 module.exports = router;

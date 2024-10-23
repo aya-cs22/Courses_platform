@@ -124,12 +124,47 @@ exports.getLecturesById = async(req, res) => {
 };
 
 // Update lecture by id
-// exports.updateLecturesById = async(req, res) => {
-//   try{
-//     const { id } = req.params;
-//     const {title, description, article, resources, qr_code } = req.body;
-//     if(req.role != 'admin'){
-//       return res.status(403).json({ message: 'Acess denied'});
-//     }
-//   }
-// };
+exports.updateLecturesById = async(req, res) => {
+  try{
+    const { id } = req.params;
+    const {title, description, article, resources, qr_code } = req.body;
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const updateLecturesData = {
+      title,
+      description,
+      article,
+      resources,
+      qr_code,
+      updated_at: Date.now(),
+    }
+
+    const updateLecture = await Lectures.findByIdAndUpdate(id, updateLecturesData,  { new: true, runValidators: true });
+    if(!updateLecture){
+      return res.status(400).json({ message: 'Lectures not found'});
+    }
+    res.status(200).json(updateLecture);
+  } catch(error){
+    console.error(error);
+    res.status(500).json({ message: 'server error'});
+  }
+};
+
+// delet lecture by id
+exports.deleteLecturesById = async(req, res) => {
+  try{
+    const { id } = req.params;
+    if(req.user.role !== 'admin'){
+      return res.status(403).json({ message: 'Access denied'});
+    }
+    const deletedLecture = await Lectures.findByIdAndDelete(id);
+    if(!deletedLecture){
+      return res.status(404).json({ message : 'courses not found'});
+    }
+    res.status(200).json({ message: 'lecture delet successfully'});
+  } catch(error){
+      console.error(error);
+      res.status(500).json({ message : 'server error'});
+  }
+};

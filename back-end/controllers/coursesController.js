@@ -73,16 +73,16 @@ exports.updateCourseById = async(req, res) => {
 exports.deleteCourseById = async (req, res) => {
     try{
         const { id } = req.params;
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ message: 'Access denied' });
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied' });
       }
-      const deletedCourse = await Courses.findByIdAndDelete(id);
-      if(!deletedCourse){
-        return res.status(404).json({ message: 'Course not found'});
+        const deletedCourse = await Courses.findByIdAndDelete(id);
+        if(!deletedCourse){
+            return res.status(404).json({ message: 'Course not found'});
       }
-      res.status(200).json({message: 'course delet successfully'})
-    } catch(error){
-        console.error(error);
-        res.status(500).json({message: 'server error'});
+        res.status(200).json({message: 'course delet successfully'})
+        } catch(error){
+            console.error(error);
+            res.status(500).json({message: 'server error'});
     }
 };
