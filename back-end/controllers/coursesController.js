@@ -68,6 +68,8 @@ exports.updateCourseById = async(req, res) => {
     res.status(500).json({message: 'server error'});
 }
 };
+
+//delet course by id
 exports.deleteCourseById = async (req, res) => {
     try{
         const { id } = req.params;

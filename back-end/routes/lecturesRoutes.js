@@ -8,8 +8,8 @@ router.post('/attend', authMiddleware, lecturesController.attendLecture);
 
 router.get('/attendance', authMiddleware, lecturesController.getUserAttendanceCount);
 
-// router.get('/', lecturesController.getAllLectures);
-// router.get('/:id', lecturesController.getLecturesById);
+router.get('/', lecturesController.getAllLectures);
+router.get('/:id', lecturesController.getLecturesById);
 
 // router.put('/:id', authMiddleware, lecturesController.updateLecturesById);
 // router.delete('/:id', authMiddleware, lecturesController.deleteLecturesById);

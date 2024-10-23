@@ -1,6 +1,7 @@
 const Lectures = require('../models/lectures');
 const qrCode = require('qrcode');
 const User = require('../models/users');
+const { Admin } = require('mongodb');
 exports.creatLectures = async(req, res) => {
   try{
     const {group_id, description, title, article, resources } = req.body;
@@ -97,3 +98,38 @@ exports.getUserAttendanceCount = async (req, res) => {
       return res.status(500).json({ error: 'An error occurred while fetching attendance count.' });
   }
 };
+
+// get all lecture 
+exports.getAllLectures = async(req, res) => {
+  try{
+    const lecture = await Lectures.find();
+    res.status(200).json(lecture);
+  } catch(error) {
+    res.status(500).json({message: 'Server error'});
+  }
+};
+
+// get lecture by id
+exports.getLecturesById = async(req, res) => {
+  try{
+    const lecture = await Lectures.findById(req.params.id);
+    if(!lecture){
+      return res.status(404).json({message: 'Lecture not found'});
+    }
+    res.status(200).json(lecture);
+  } catch(error){
+    console.error('Error fetching lecture');
+    res.status(500).json({message: 'server error', error: error.message});
+  }
+};
+
+// Update lecture by id
+// exports.updateLecturesById = async(req, res) => {
+//   try{
+//     const { id } = req.params;
+//     const {title, description, article, resources, qr_code } = req.body;
+//     if(req.role != 'admin'){
+//       return res.status(403).json({ message: 'Acess denied'});
+//     }
+//   }
+// };
