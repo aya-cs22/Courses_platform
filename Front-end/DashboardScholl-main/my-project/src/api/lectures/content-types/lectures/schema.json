@@ -1,0 +1,41 @@
+{
+  "kind": "collectionType",
+  "collectionName": "lecture",
+  "info": {
+    "singularName": "lectures",
+    "pluralName": "lecture",
+    "displayName": "Lecture",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "lecuter_number": {
+      "type": "string",
+      "required": true
+    },
+    "quiz": {
+      "type": "string",
+      "required": true
+    },
+    "task": {
+      "type": "string",
+      "required": true
+    },
+    "link_lecture": {
+      "type": "string",
+      "required": true
+    },
+    "upload": {
+      "type": "boolean",
+      "default": false,
+      "required": true
+    },
+    "group": {
+      "required": true,
+      "type": "date"
+    }
+  }
+}

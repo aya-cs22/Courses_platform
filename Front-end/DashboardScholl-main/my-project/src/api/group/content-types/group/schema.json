@@ -1,0 +1,21 @@
+{
+  "kind": "collectionType",
+  "collectionName": "groups",
+  "info": {
+    "singularName": "group",
+    "pluralName": "groups",
+    "displayName": "Group"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Name_group": {
+      "type": "string"
+    },
+    "Date_Group": {
+      "type": "datetime"
+    }
+  }
+}

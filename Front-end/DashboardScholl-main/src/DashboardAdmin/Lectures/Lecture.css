@@ -1,0 +1,12 @@
+
+
+.lectures-card{
+    display: flex;
+    flex-wrap: wrap;
+    margin: auto;
+    text-align: center;
+}
+.lectures-card .card{
+    max-width: 280px;
+     margin: 10px;
+}
