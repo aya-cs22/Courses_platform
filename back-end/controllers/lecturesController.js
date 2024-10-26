@@ -192,26 +192,62 @@ exports.createTask = async(req, res) => {
   }
 };
 
-// // get task by id
-// exports.getTaskById = async(req, res) => {
-//   try{
-//     const task = await Task.findById(req.params.id);
-//         if (!task) {
-//       return res.status(404).json({ message : 'Task not found'});
+
+// Get all tasks by lecture id
+exports.getTasksByLectureId = async (req, res) => {
+  try {
+    const lecture = await Lectures.findById(req.params.lectureId);
+    if (!lecture) {
+      return res.status(404).json({ message: 'Lecture not found' });
+    }
+
+    res.status(200).json(lecture.tasks);
+  } catch (error) {
+    console.error('Error fetching tasks:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+// // Submit a Task
+// exports.submitTask = async (req, res) => {
+//   try {
+//     const { lectureId } = req.params; 
+//     const { taskIndex, taskLink } = req.body; 
+//     const userId = req.user._id;
+
+//     if (!req.user) {
+//       return res.status(401).json({ message: 'Unauthorized' });
 //     }
-//     res.status(200).json(task);
-//   } catch(error) {
-//     console.error('Error fetching Task');
+
+//     const lecture = await Lectures.findById(lectureId);
+//     if (!lecture) {
+//       return res.status(404).json({ message: 'Lecture not found' });
+//     }
+
+//     if (taskIndex < 0 || taskIndex >= lecture.tasks.length) {
+//       return res.status(404).json({ message: 'Task index out of range' });
+//     }
+
+//     const task = lecture.tasks[taskIndex];
+//     if (task.submittedBy?.includes(userId)) {
+//       return res.status(400).json({ message: 'Task already submitted' });
+//     }
+
+//     const currentTime = new Date();
+//     task.taskLink = taskLink;
+//     task.submittedOnTime = currentTime <= task.deadline;
+
+//     if (!task.submittedBy) {
+//       task.submittedBy = [];
+//     }
+//     task.submittedBy.push(userId);
+
+//     await lecture.save();
+//     res.status(200).json({
+//       message: task.submittedOnTime ? 'Task submitted successfully' : 'Task submitted successfully, but it is late',
+//       task,
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: 'Server error' });
 //   }
-// }
-
-
-// get all tasks
-
-
-// Submit a Task
-
-
-// Score a Task
-
-
+// };

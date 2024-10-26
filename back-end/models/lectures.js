@@ -1,4 +1,11 @@
 const mongoose = require('mongoose');
+const taskSchema = new mongoose.Schema({
+  taskLink: String,
+  adminLink: String,
+  deadline: Date,
+  submittedOnTime: { type: Boolean, default: false },
+  score: { type: Number, default: 0 }
+});
 // creat schema for groups
 const lecturesSchema = new mongoose.Schema({
   group_id: {
@@ -6,19 +13,16 @@ const lecturesSchema = new mongoose.Schema({
     ref: 'Groups',
     required: true
   },
-  tasks: [{
-    taskLink: String, 
-    adminLink: String,
-    deadline: Date,
-    submittedOnTime: {         
-      type: Boolean,
-      default: false
-    },
-    score: {
-      type: Number,
-      default: 0
-    }
-  }],
+  tasks: [taskSchema],
+  submittedBy: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'Users',
+    default: []
+  },
+  submittedOnTime: {
+    type: Boolean,
+    default: false
+  },
   title:{
     type: String,
     required: true
