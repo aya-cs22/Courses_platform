@@ -51,7 +51,6 @@ exports.updateGroupsById = async (req, res) => {
         const { id } = req.params;
         const { title, type_course, location, start_date, end_date } = req.body;
 
-        // Check if the user has admin role
         if (req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
@@ -64,15 +63,12 @@ exports.updateGroupsById = async (req, res) => {
             end_date
         };
 
-        // Find and update the group
         const updatedGroup = await Groups.findByIdAndUpdate(id, updateGroupsData, { new: true, runValidators: true });
 
-        // Check if the group was found and updated
         if (!updatedGroup) {
             return res.status(404).json({ message: 'Group not found' });
         }
 
-        // Send back the updated group
         res.status(200).json(updatedGroup);
 
     } catch (error) {

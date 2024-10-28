@@ -22,7 +22,7 @@ exports.creatLectures = async(req, res) => {
     title: title
   };
   const qr_code = await qrCode.toDataURL(JSON.stringify(qrCodeData)); // Convert data to QR Code
-  lectures.qr_code = qr_code; // Update lecture by qrcode
+  lectures.qr_code = qr_code; 
   await lectures.save();
   res.status(201).json(lectures);
 } catch(error){
@@ -31,7 +31,6 @@ exports.creatLectures = async(req, res) => {
 }
 };
 
-// Register attendance when scanning the QR Code
 exports.attendLecture = async (req, res) => {
   try {
       console.log('User object:', req.user);
@@ -42,23 +41,19 @@ exports.attendLecture = async (req, res) => {
       const userId = req.user._id; 
       const lectureId = req.body.lectureId; 
 
-      // Check for both userId and lectureId
       if (!lectureId) {
           return res.status(400).json({ error: 'Lecture ID is required.' });
       }
 
-      // Find the lecture
       const lecture = await Lectures.findById(lectureId);
       if (!lecture) {
           return res.status(404).json({ error: 'Lecture not found.' });
       }
 
-      // Check if the user has already attended the lecture
       if (lecture.attendees.includes(userId)) {
         return res.status(400).json({ error: 'You have already registered for this lecture.' });
     }
 
-      // Add user to the attendees
       lecture.attendees.push(userId);
       lecture.attendanceCount += 1;
       await lecture.save();

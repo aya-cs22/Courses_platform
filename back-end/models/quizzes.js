@@ -1,48 +1,49 @@
 const mongoose = require('mongoose');
-// creat schema for question
+// creat a schema for Languages
 const questionSchema = new mongoose.Schema({
-  question_text: {
-    type: String,
-  },
-  options: [{
-    type: String,
-    required: true,
-  }],
-  correct_answer:{
+  questionText: {
     type: String,
     required: true
   },
+  options: [{
+    type: String,
+    required: true
+  }],
+  correctAnswer: {
+    type: String,
+    required: true
+  }
 });
-
-// Create schema for quizzes
-const quizeSchema = new mongoose.Schema({
-  lecture_id:{
+const quizSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true
+  },
+  description: {
+    type: String,
+    required: true
+  },
+  question: [questionSchema],
+  lectureId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Lectures',
     required: true
   },
-  title:{
-    type: String,
-  },
-  description:{
-    type: String
-  },
-  questions: [questionSchema],
-  created_at: {
+  createdAt: {
     type: Date,
-    default: Date.now,
-    },
-    updated_at: {
-      type: Date,
-      default: Date.now,
-    },
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+quizSchema.pre('save', function (next) {
+  this.updatedAt = Date.now();
+  next();
 });
 
-// Pre-save hook to update `updated_at` field before saving
-quizeSchema.pre('save', async function (next) {
-    this.updated_at = Date.now();
-    next();
-  });
-  
-  const Quizes = mongoose.model('Quizes', quizeSchema);
-  module.exports = Quizes;
+// creat and export lesson module
+const Quiz = mongoose.model('Quiz', quizSchema);
+module.exports = Quiz;
+

@@ -29,11 +29,13 @@ if (process.env.NODE_ENV === 'development') {
 const userRoutes = require('./routes/userRoutes');
 const courseRoutes = require('./routes/coursesRoutes');
 const groupsRoutes = require('./routes/groupsRoutes');
-const lectureRoutes = require('./routes/lectureRoutes.js')
+const lectureRoutes = require('./routes/lectureRoutes.js');
+const quizeRoutes = require('./routes/quizeRoutes.js');
 app.use('/api/users', userRoutes);  
 app.use('/api/course', courseRoutes);
 app.use('/api/groups', groupsRoutes);
 app.use('/api/lectures', lectureRoutes);
+app.use('/api/quize', quizeRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

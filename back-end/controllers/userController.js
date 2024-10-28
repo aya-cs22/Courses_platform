@@ -32,7 +32,7 @@ exports.register = async (req, res) => {
             name,
             email,
             phone_number,
-            password, // Consider hashing the password before saving
+            password,
             isVerified: false,
             emailVerificationCode: generateVerificationCode(), // Call the function to get a code
             verificationCodeExpiry: new Date(Date.now() + EMAIL_VERIFICATION_TIMEOUT)
@@ -50,10 +50,8 @@ exports.register = async (req, res) => {
             text: `Your verification code is: ${newUser.emailVerificationCode}`
         };
 
-        // Send the verification email
         await transporter.sendMail(mailOptions);
 
-        // Send success response
         res.status(200).json({ message: 'Registration successful, please verify your email' });
 
     } catch (error) {
@@ -79,13 +77,11 @@ exports.verifyEmail = async (req, res) => {
             return res.status(400).json({ message: 'Invalid or expired verification code' });
         }
 
-        // Update user's verification status
         user.isVerified = true;
-        user.emailVerificationCode = null; // Clear the verification code
-        user.verificationCodeExpiry = null; // Clear the expiry date
-        await user.save(); // Save changes
+        user.emailVerificationCode = null; 
+        user.verificationCodeExpiry = null; 
+        await user.save(); 
 
-        // Send success response
         res.status(200).json({ message: 'Email verified successfully' });
 
     } catch (error) {
@@ -140,7 +136,6 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid email or password' });
         }
 
-        // Use bcrypt to compare the password entered with the hashed password in the database
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ message: 'Invalid email or password' });
@@ -314,7 +309,6 @@ exports.updateUser = async (req, res) => {
 exports.deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
-        // Verify that the user performing the delet is the same as the specified user or an admin.
         if (req.user.id !== id && req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
