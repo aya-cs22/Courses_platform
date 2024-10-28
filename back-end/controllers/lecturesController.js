@@ -207,47 +207,90 @@ exports.getTasksByLectureId = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
-// // Submit a Task
-// exports.submitTask = async (req, res) => {
-//   try {
-//     const { lectureId } = req.params; 
-//     const { taskIndex, taskLink } = req.body; 
-//     const userId = req.user._id;
 
-//     if (!req.user) {
-//       return res.status(401).json({ message: 'Unauthorized' });
-//     }
+// Submit a Task
+exports.submitTask = async (req, res) => {
+  try {
+    console.log('Request Body:', req.body); 
+    const { lectureId, taskId } = req.params;
+    const { submissionLink, userId } = req.body;
+    console.log(`userId: ${userId}`);
 
-//     const lecture = await Lectures.findById(lectureId);
-//     if (!lecture) {
-//       return res.status(404).json({ message: 'Lecture not found' });
-//     }
+    const lecture = await Lectures.findById(lectureId);
+    if (!lecture) {
+      return res.status(404).json({ message: 'Lecture not found' });
+    }
 
-//     if (taskIndex < 0 || taskIndex >= lecture.tasks.length) {
-//       return res.status(404).json({ message: 'Task index out of range' });
-//     }
+    const task = lecture.tasks.id(taskId);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
 
-//     const task = lecture.tasks[taskIndex];
-//     if (task.submittedBy?.includes(userId)) {
-//       return res.status(400).json({ message: 'Task already submitted' });
-//     }
+    if (!task.submissions) {
+      task.submissions = [];
+    }
 
-//     const currentTime = new Date();
-//     task.taskLink = taskLink;
-//     task.submittedOnTime = currentTime <= task.deadline;
+    const existingSubmission = task.submissions.find(
+      (submission) => submission.userId.toString() === userId.toString()
+    );
+    if (existingSubmission) {
+      return res.status(400).json({ message: 'You have already submitted this task.' });
+    }
 
-//     if (!task.submittedBy) {
-//       task.submittedBy = [];
-//     }
-//     task.submittedBy.push(userId);
+    task.submissions.push({
+      userId,
+      submissionLink,
+      submittedOnTime: new Date() <= task.deadline,
+      submittedAt: new Date()
+    });
 
-//     await lecture.save();
-//     res.status(200).json({
-//       message: task.submittedOnTime ? 'Task submitted successfully' : 'Task submitted successfully, but it is late',
-//       task,
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// };
+    await lecture.save();
+
+    return res.status(200).json({ message: 'Task submitted successfully' });
+  } catch (error) {
+    console.error('Error in submitTask:', error);
+    return res.status(500).json({ message: 'An error occurred while submitting the task' });
+  }
+};
+// Evaluate a Task by Admin
+exports.evaluateTask = async (req, res) => {
+  try {
+    const { lectureId, taskId } = req.params;
+    const { userId, score } = req.body;
+
+    console.log(`Evaluating task. Lecture ID: ${lectureId}, Task ID: ${taskId}, User ID: ${userId}`);
+
+    const lecture = await Lectures.findById(lectureId);
+    if (!lecture) {
+      console.log(`Lecture not found with ID: ${lectureId}`);
+      return res.status(404).json({ message: 'Lecture not found' });
+    }
+
+    const task = lecture.tasks.id(taskId);
+    if (!task) {
+      console.log(`Task not found with ID: ${taskId} in Lecture: ${lectureId}`);
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    if (!task.submissions || task.submissions.length === 0) {
+      console.log(`No submissions found for task ID: ${taskId} in Lecture: ${lectureId}`);
+      return res.status(404).json({ message: 'No submissions found for this task.' });
+    }
+    
+    const userSubmission = task.submissions.find(submission => submission.userId.toString() === userId.toString());
+    if (!userSubmission) {
+      console.log(`Submission not found for User ID: ${userId} in Task ID: ${taskId}`);
+      return res.status(403).json({ message: 'This task was not submitted by this user.' });
+    }
+
+    userSubmission.score = score;
+
+    await lecture.save();
+
+    return res.status(200).json({ message: 'Task evaluated successfully', score });
+  } catch (error) {
+    console.error('Error in evaluateTask:', error);
+    return res.status(500).json({ message: 'An error occurred while evaluating the task' });
+  }
+};
+

@@ -23,6 +23,21 @@ const lecturesSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  submissions: [{ 
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    submissionLink: String,
+    submittedOnTime: Boolean,
+    submittedAt: Date,
+    evaluation: {
+      score: Number,
+      feedback: String,
+      evaluatedAt: Date,
+    },
+  }],
   title:{
     type: String,
     required: true
