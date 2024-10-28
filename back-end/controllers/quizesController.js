@@ -1,5 +1,7 @@
 const Quiz = require('../models/quizzes');
 const Lecture = require('../models/lectures');
+const User = require('../models/users');
+const Submission = require('../models/submissions');
 // Create a new quiz
 exports.createQuiz = async (req, res) => {
   try {
@@ -65,7 +67,7 @@ exports.deleteQuizById = async (req, res) => {
     if (!req.user || req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Access denied, admin only' });
     }
-
+    console.log('User ID:', req.user._id);
     const deletedQuiz = await Quiz.findByIdAndDelete(req.params.id);
     if (!deletedQuiz) {
       return res.status(404).json({ message: 'Quiz not found' });
@@ -74,5 +76,49 @@ exports.deleteQuizById = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.submitQuiz = async (req, res) => {
+  try {
+    console.log('Request body:', req.body);
+    console.log('User from request:', req.user);
+
+    const { quizId, answers } = req.body;
+
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz not found' });
+    }
+
+    // تحقق من وجود المستخدم
+    if (!req.user || !req.user.id) {
+      return res.status(400).json({ message: 'User ID is missing in request' });
+    }
+
+    let score = 0;
+    quiz.question.forEach((question, index) => {
+      if (question.correctAnswer === answers[index]?.answer) {
+        score++;
+      }
+    });
+
+    const submission = new Submission({
+      userId: req.user.id,
+      quizId,
+      answers,
+      score
+    });
+
+    await submission.save();
+
+    res.status(200).json({
+      message: 'Quiz submitted successfully',
+      score,
+      totalScore: quiz.question.length
+    });
+  } catch (error) {
+    console.error('Error submitting quiz:', error);
+    res.status(500).json({ message: 'Server error while submitting quiz' });
   }
 };

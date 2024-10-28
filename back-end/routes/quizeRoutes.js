@@ -19,4 +19,7 @@ router.put('/:id', authenticate, quizController.updateQuizById);
 // Delete a quiz by ID
 router.delete('/:id', authenticate, quizController.deleteQuizById);
 
+
+router.post('/submit', authenticate, quizController.submitQuiz);
+
 module.exports = router;
