@@ -79,6 +79,7 @@ exports.deleteQuizById = async (req, res) => {
   }
 };
 
+// submit quize
 exports.submitQuiz = async (req, res) => {
   try {
     console.log('Request body:', req.body);
@@ -91,7 +92,6 @@ exports.submitQuiz = async (req, res) => {
       return res.status(404).json({ message: 'Quiz not found' });
     }
 
-    // تحقق من وجود المستخدم
     if (!req.user || !req.user.id) {
       return res.status(400).json({ message: 'User ID is missing in request' });
     }
@@ -103,19 +103,31 @@ exports.submitQuiz = async (req, res) => {
       }
     });
 
+    const totalQuestions = quiz.question.length;
+    const passingScore = Math.floor(totalQuestions / 2);
+
     const submission = new Submission({
       userId: req.user.id,
       quizId,
       answers,
-      score
+      score,
+      pass: score >= passingScore 
     });
 
     await submission.save();
 
+    if (score < passingScore) {
+      return res.status(400).json({
+        message: 'You did not pass the quiz. Please try again to unlock the next quiz.',
+        score,
+        totalScore: totalQuestions
+      });
+    }
+
     res.status(200).json({
       message: 'Quiz submitted successfully',
       score,
-      totalScore: quiz.question.length
+      totalScore: totalQuestions
     });
   } catch (error) {
     console.error('Error submitting quiz:', error);
