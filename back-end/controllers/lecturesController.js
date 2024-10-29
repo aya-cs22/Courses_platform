@@ -1,6 +1,5 @@
 const Lectures = require('../models/lectures');
 const qrCode = require('qrcode');
-const User = require('../models/users');
 const { Admin } = require('mongodb');
 exports.creatLectures = async(req, res) => {
   try{

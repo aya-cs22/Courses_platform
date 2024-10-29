@@ -34,11 +34,11 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user'
   },
-  emailVerificationCode: { // Email verification code, set when a verification code is sent to the user.
+  emailVerificationCode: { // Email verification code, set when a verification code is sent to the user
     type: String,
     default: null
   },
-  verificationCodeExpiry: { // Verification code expiration date.
+  verificationCodeExpiry: { // Verification code expiration date
     type: Date,
     default: null
   },

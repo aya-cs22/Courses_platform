@@ -4,9 +4,9 @@ const morgan = require('morgan');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
-
 dotenv.config({ path: 'config.env' });
 const dbConnection = require('./config/db');
+const userController = require('./controllers/userController');
 
 // Connect with DB
 dbConnection();
@@ -42,6 +42,11 @@ app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).send('Something broke!');
 });
+
+
+setInterval(() => {
+    userController.checkVerificationTimeout();
+}, 180 * 60 * 1000);
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {

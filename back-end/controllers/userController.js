@@ -34,15 +34,13 @@ exports.register = async (req, res) => {
             phone_number,
             password,
             isVerified: false,
-            emailVerificationCode: generateVerificationCode(), // Call the function to get a code
+            emailVerificationCode: generateVerificationCode(), 
             verificationCodeExpiry: new Date(Date.now() + EMAIL_VERIFICATION_TIMEOUT)
         });
 
-        // Save the new user to the database
         await newUser.save();
         console.log(newUser.name);
         console.log(newUser.password);
-        // Prepare email options
         const mailOptions = {
             from: process.env.ADMIN_EMAIL,
             to: newUser.email,
@@ -90,43 +88,66 @@ exports.verifyEmail = async (req, res) => {
     }
 };
 
-exports.login = async (req, res) => {
+exports.checkVerificationTimeout = async () => {
     try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(400).json({ message: 'Invalid email or password' });
-        }
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Invalid email or password' });
-        }
-
-        if (!user.isVerified) {
-            return res.status(400).json({ message: 'Please verify your email first' });
-        }
-
-        const token = jwt.sign(
-            { id: user._id, role: user.role },
-            process.env.JWT_SECRET,
-            { expiresIn: '3h' }
-        );
-
-        res.status(200).json({
-            message: 'Login successful',
-            token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
+        const now = new Date();
+        const expiredUsers = await User.find({
+            isVerified: false,
+            verificationCodeExpiry: { $lt: now }
         });
+
+        if (expiredUsers.length > 0) {
+            await User.deleteMany({ 
+                isVerified: false, 
+                verificationCodeExpiry: { $lt: now } 
+            });
+            console.log(`Deleted ${expiredUsers.length} expired users.`);
+        } else {
+            console.log('No expired users to delete.');
+        }
     } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Error checking verification timeout:', error);
     }
 };
+
+
+// exports.login = async (req, res) => {
+//     try {
+//         const { email, password } = req.body;
+//         const user = await User.findOne({ email });
+//         if (!user) {
+//             return res.status(400).json({ message: 'Invalid email or password' });
+//         }
+//         const isMatch = await bcrypt.compare(password, user.password);
+//         if (!isMatch) {
+//             return res.status(400).json({ message: 'Invalid email or password' });
+//         }
+
+//         if (!user.isVerified) {
+//             return res.status(400).json({ message: 'Please verify your email first' });
+//         }
+
+//         const token = jwt.sign(
+//             { id: user._id, role: user.role },
+//             process.env.JWT_SECRET,
+//             { expiresIn: '3h' }
+//         );
+
+//         res.status(200).json({
+//             message: 'Login successful',
+//             token,
+//             user: {
+//                 id: user._id,
+//                 name: user.name,
+//                 email: user.email,
+//                 role: user.role
+//             }
+//         });
+//     } catch (error) {
+//         console.error('Login error:', error);
+//         res.status(500).json({ message: 'Server error' });
+//     }
+// };
 
 exports.login = async (req, res) => {
     try {
