@@ -135,16 +135,39 @@ exports.forgotPassword = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        const resetToken = crypto.randomBytes(32).toString('hex');
-        user.resetPasswordToken = resetToken;
-        user.resetPasswordExpiry = Date.now() + 3600000; 
+
+        // Generate a 6-digit code
+        const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+        user.resetPasswordToken = resetCode; 
+        user.resetPasswordExpiry = Date.now() + 3600000; // 1 hour 
         await user.save();
+
         const mailOptions = {
             from: process.env.ADMIN_EMAIL,
             to: user.email,
             subject: 'Reset Password',
-            text: `Your password reset token is: ${resetToken}. Use this token to reset your password.`
-        };
+            html: `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+        <header style="background-color: #4CAF50; padding: 20px; text-align: center; color: white;">
+            <h1 style="margin: 0; font-size: 24px;">Code Eagles Password Reset</h1>
+        </header>
+        <div style="padding: 20px;">
+            <h2 style="font-size: 20px; color: #333;">Hello, ${user.name}!</h2>
+            <p style="color: #555;">We received a request to reset your password. Use the code below to reset it:</p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 5px;">
+                <p style="font-size: 2em; font-weight: bold; color: #4CAF50;">${resetCode}</p>
+            </div>
+            <p style="color: #555;">This code is valid for the next <strong>1 hour</strong>. If you did not request this reset, please ignore this email or contact support if you have any concerns.</p>
+            <p style="margin-top: 20px; color: #555;">Best Regards,<br>The Code Eagles Team</p>
+        </div>
+        <footer style="background-color: #f1f1f1; padding: 10px; text-align: center; color: #777; font-size: 14px;">
+            <p>© 2024 Code Eagles, All rights reserved.</p>
+            <p style="margin: 0;">Need help? Contact us at <a href="mailto:codeeagles653@gmail.com" style="color: #4CAF50; text-decoration: none;">support@codeeagles.com</a></p>
+        </footer>
+    </div>
+    `
+    };
+
         await transporter.sendMail(mailOptions);
         res.status(200).json({ message: 'Reset password email sent' });
     } catch (error) {
@@ -154,15 +177,16 @@ exports.forgotPassword = async (req, res) => {
 };
 exports.resetPassword = async (req, res) => {
     try {
-        const { resetToken, newPassword } = req.body;
+        const { resetCode, newPassword } = req.body; 
         const user = await User.findOne({
-            resetPasswordToken: resetToken,
+            resetPasswordToken: resetCode,
             resetPasswordExpiry: { $gt: Date.now() }
         });
 
         if (!user) {
-            return res.status(400).json({ message: 'Invalid or expired token' });
+            return res.status(400).json({ message: 'Invalid or expired code' });
         }
+
         user.password = newPassword; 
         user.resetPasswordToken = undefined; 
         user.resetPasswordExpiry = undefined; 
@@ -174,6 +198,7 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
 
 exports.updatePassword = async (req, res) => {
     const { id } = req.params;
