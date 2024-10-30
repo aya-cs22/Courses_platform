@@ -5,7 +5,7 @@ const User = require('../models/users');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 
-const EMAIL_VERIFICATION_TIMEOUT = 180 * 60 * 1000; // 3 hours
+const EMAIL_VERIFICATION_TIMEOUT = 60 * 60 * 1000; // 1 hours
 
 // Function to generate a 6-digit verification code
 const generateVerificationCode = () => {
@@ -44,19 +44,35 @@ exports.register = async (req, res) => {
         const mailOptions = {
             from: process.env.ADMIN_EMAIL,
             to: newUser.email,
-            subject: 'Email Verification',
-            text: `Your verification code is: ${newUser.emailVerificationCode}`
+            subject: 'Email Verification Code from Code Eagles',
+            html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+                <header style="background-color: #4CAF50; padding: 20px; text-align: center; color: white;">
+                    <h1 style="margin: 0; font-size: 24px;">Welcome to Code Eagles!</h1>
+                </header>
+                <div style="padding: 20px;">
+                    <h2 style="font-size: 20px; color: #333;">Hello, ${newUser.name}!</h2>
+                    <p style="color: #555;">Thank you for joining Code Eagles! To complete your registration, please verify your email address using the code below:</p>
+                    <div style="text-align: center; margin: 20px 0; padding: 10px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 5px;">
+                        <p style="font-size: 1.5em; font-weight: bold; color: #4CAF50;">${newUser.emailVerificationCode}</p>
+                    </div>
+                    <p style="color: #555;">This code is valid for the next 1 hour. If you didn’t request this email, please ignore it.</p>
+                    <p style="margin-top: 20px; color: #555;">Happy Coding!<br>The Code Eagles Team</p>
+                </div>
+                <footer style="background-color: #f1f1f1; padding: 10px; text-align: center; color: #777; font-size: 14px;">
+                    <p>© 2024 Code Eagles, All rights reserved.</p>
+                </footer>
+            </div>
+            `
         };
-
         await transporter.sendMail(mailOptions);
-
         res.status(200).json({ message: 'Registration successful, please verify your email' });
-
     } catch (error) {
         console.error('Registration error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
+
 exports.verifyEmail = async (req, res) => {
     try {
         const { email, code } = req.body;
@@ -88,14 +104,17 @@ exports.verifyEmail = async (req, res) => {
     }
 };
 
+// check time virify email
 exports.checkVerificationTimeout = async () => {
     try {
         const now = new Date();
+        console.log(`Checking for expired users at: ${now}`);
         const expiredUsers = await User.find({
             isVerified: false,
             verificationCodeExpiry: { $lt: now }
         });
 
+        console.log(`Found ${expiredUsers.length} expired users.`);
         if (expiredUsers.length > 0) {
             await User.deleteMany({ 
                 isVerified: false, 
@@ -110,44 +129,6 @@ exports.checkVerificationTimeout = async () => {
     }
 };
 
-
-// exports.login = async (req, res) => {
-//     try {
-//         const { email, password } = req.body;
-//         const user = await User.findOne({ email });
-//         if (!user) {
-//             return res.status(400).json({ message: 'Invalid email or password' });
-//         }
-//         const isMatch = await bcrypt.compare(password, user.password);
-//         if (!isMatch) {
-//             return res.status(400).json({ message: 'Invalid email or password' });
-//         }
-
-//         if (!user.isVerified) {
-//             return res.status(400).json({ message: 'Please verify your email first' });
-//         }
-
-//         const token = jwt.sign(
-//             { id: user._id, role: user.role },
-//             process.env.JWT_SECRET,
-//             { expiresIn: '3h' }
-//         );
-
-//         res.status(200).json({
-//             message: 'Login successful',
-//             token,
-//             user: {
-//                 id: user._id,
-//                 name: user.name,
-//                 email: user.email,
-//                 role: user.role
-//             }
-//         });
-//     } catch (error) {
-//         console.error('Login error:', error);
-//         res.status(500).json({ message: 'Server error' });
-//     }
-// };
 
 exports.login = async (req, res) => {
     try {
@@ -221,6 +202,7 @@ exports.addUser = async (req, res) => {
     }
 };
 
+// get user by id
 exports.getUser = async (req, res) => {
     try {
         const { id } = req.params;
@@ -233,13 +215,14 @@ exports.getUser = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        if (req.user.id !== id && req.user.role !== 'admin') {
+        if (req.user.id !== id && !(req.user.role === 'admin' || req.user.role === 'assistant')) {
             return res.status(403).json({ message: 'Access denied' });
         }
+        
 
         let userResponse;
 
-        if (req.user.role === 'admin') {
+        if (req.user.role === 'admin'  || req.user.role === 'assistant') {
             userResponse = { ...user._doc, password: undefined };
         } else if (req.user.id === id) {
             userResponse = { ...user._doc };
@@ -254,7 +237,7 @@ exports.getUser = async (req, res) => {
 
 exports.getAllUsers = async (req, res) => {
     try {
-        if (req.user.role !== 'admin') {
+        if (req.user.role !== 'admin' && req.user.role !== 'assistant') {
             return res.status(403).json({ message: 'Access denied' });
         }
 
@@ -284,13 +267,14 @@ exports.updateUser = async (req, res) => {
                 const existingUser = await User.findOne({ email });
                 if (existingUser && existingUser.id !== id) {
                     return res.status(400).json({ message: 'Email already exists' });
+                } else {
+                    updates.email = email;
                 }
-                updates.email = email;
             }
 
             if (password) {
                 const salt = await bcrypt.genSalt(10);
-                updates.password = await bcrypt.hash(password, salt);
+                updates.password = await bcrypt.hash(password, salt); 
             }
 
             if (role) {
@@ -299,15 +283,8 @@ exports.updateUser = async (req, res) => {
         }
 
         if (req.user.role === 'admin') {
-            if (name) updates.name = name;
-            if (email) {
-                const existingUser = await User.findOne({ email });
-                if (existingUser && existingUser.id !== id) {
-                    return res.status(400).json({ message: 'Email already exists' });
-                }
-                updates.email = email;
-            }
-            if (role) updates.role = role;
+            if (role) updates.role = role; 
+
             if (password) {
                 const salt = await bcrypt.genSalt(10);
                 updates.password = await bcrypt.hash(password, salt);
