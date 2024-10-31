@@ -34,7 +34,7 @@ exports.register = async (req, res) => {
             phone_number,
             password,
             isVerified: false,
-            emailVerificationCode: generateVerificationCode(), 
+            emailVerificationCode: generateVerificationCode(),
             verificationCodeExpiry: new Date(Date.now() + EMAIL_VERIFICATION_TIMEOUT)
         });
 
@@ -91,9 +91,9 @@ exports.verifyEmail = async (req, res) => {
         }
 
         user.isVerified = true;
-        user.emailVerificationCode = null; 
-        user.verificationCodeExpiry = null; 
-        await user.save(); 
+        user.emailVerificationCode = null;
+        user.verificationCodeExpiry = null;
+        await user.save();
 
         res.status(200).json({ message: 'Email verified successfully' });
 
@@ -115,9 +115,9 @@ exports.checkVerificationTimeout = async () => {
 
         console.log(`Found ${expiredUsers.length} expired users.`);
         if (expiredUsers.length > 0) {
-            await User.deleteMany({ 
-                isVerified: false, 
-                verificationCodeExpiry: { $lt: now } 
+            await User.deleteMany({
+                isVerified: false,
+                verificationCodeExpiry: { $lt: now }
             });
             console.log(`Deleted ${expiredUsers.length} expired users.`);
         } else {
@@ -138,7 +138,7 @@ exports.forgotPassword = async (req, res) => {
 
         // Generate a 6-digit code
         const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
-        user.resetPasswordToken = resetCode; 
+        user.resetPasswordToken = resetCode;
         user.resetPasswordExpiry = Date.now() + 3600000; // 1 hour 
         await user.save();
 
@@ -166,7 +166,7 @@ exports.forgotPassword = async (req, res) => {
         </footer>
     </div>
     `
-    };
+        };
 
         await transporter.sendMail(mailOptions);
         res.status(200).json({ message: 'Reset password email sent' });
@@ -177,7 +177,7 @@ exports.forgotPassword = async (req, res) => {
 };
 exports.resetPassword = async (req, res) => {
     try {
-        const { resetCode, newPassword } = req.body; 
+        const { resetCode, newPassword } = req.body;
         const user = await User.findOne({
             resetPasswordToken: resetCode,
             resetPasswordExpiry: { $gt: Date.now() }
@@ -187,9 +187,9 @@ exports.resetPassword = async (req, res) => {
             return res.status(400).json({ message: 'Invalid or expired code' });
         }
 
-        user.password = newPassword; 
-        user.resetPasswordToken = undefined; 
-        user.resetPasswordExpiry = undefined; 
+        user.password = newPassword;
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpiry = undefined;
         await user.save();
 
         res.status(200).json({ message: 'Password has been reset successfully' });
@@ -209,7 +209,7 @@ exports.updatePassword = async (req, res) => {
             const updates = {};
             if (password) {
                 const salt = await bcrypt.genSalt(10);
-                updates.password = await bcrypt.hash(password, salt); 
+                updates.password = await bcrypt.hash(password, salt);
             }
             const user = await User.findByIdAndUpdate(id, updates, { new: true });
             if (!user) {
@@ -272,10 +272,12 @@ exports.addUser = async (req, res) => {
             return res.status(403).json({ message: 'Access denied. Admins only.' });
         }
 
-        const { name, email, password, phone_number, role } = req.body;
+        const { name, email, password, phone_number, role, group_id, date_group } = req.body;
         if (!name || !email || !password || !phone_number || !role) {
+
             return res.status(400).json({ message: 'All fields are required' });
         }
+
 
         const exists_user = await User.findOne({ email });
         if (exists_user) {
@@ -283,20 +285,25 @@ exports.addUser = async (req, res) => {
         }
 
         const newUser = new User({
+            group_id ,
             name,
             email,
             password,
             phone_number,
             role,
+            date_group,
             isVerified: true,
         });
-
-        await newUser.save();
-        res.status(201).json({ message: 'User added successfully', user: newUser });
-    } catch (error) {
-        console.error('Error adding user: ', error);
-        res.status(500).json({ message: 'Server error' });
+    if (group_id ) {
+        newUser.group_id = group_id;
     }
+
+    await newUser.save();
+    res.status(201).json({ message: 'User added successfully', user: newUser });
+} catch (error) {
+    console.error('Error adding user: ', error);
+    res.status(500).json({ message: 'Server error' });
+}
 };
 
 // get user by id
@@ -315,11 +322,11 @@ exports.getUser = async (req, res) => {
         if (req.user.id !== id && !(req.user.role === 'admin' || req.user.role === 'assistant')) {
             return res.status(403).json({ message: 'Access denied' });
         }
-        
+
 
         let userResponse;
 
-        if (req.user.role === 'admin'  || req.user.role === 'assistant') {
+        if (req.user.role === 'admin' || req.user.role === 'assistant') {
             userResponse = { ...user._doc, password: undefined };
         } else if (req.user.id === id) {
             userResponse = { ...user._doc };
@@ -351,7 +358,7 @@ exports.getAllUsers = async (req, res) => {
 exports.updateUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, email, password, role } = req.body;
+        const { name, email, password, role, group_id } = req.body;
         const updates = {};
 
         if (req.user.id !== id && req.user.role !== 'admin') {
@@ -371,16 +378,20 @@ exports.updateUser = async (req, res) => {
 
             if (password) {
                 const salt = await bcrypt.genSalt(10);
-                updates.password = await bcrypt.hash(password, salt); 
+                updates.password = await bcrypt.hash(password, salt);
             }
 
             if (role) {
                 return res.status(403).json({ message: 'You cannot change your role' });
             }
+            if (group_id) {
+                return res.status(403).json({ message: 'You cannot change your Group' });
+            }
         }
 
         if (req.user.role === 'admin') {
-            if (role) updates.role = role; 
+            if (role) updates.role = role;
+            if(group_id) updates.group_id = group_id;
 
             if (password) {
                 const salt = await bcrypt.genSalt(10);

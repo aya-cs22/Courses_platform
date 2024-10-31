@@ -6,30 +6,46 @@ import { toast, ToastContainer } from "react-toastify";
 function UpdateLecture() {
   const { groupId, lectureId } = useParams();
   const navigate = useNavigate();
-  console.log(groupId);
+
 
   const [dataUpdate, setdataUpdate] = useState({
-    lecuter_number: "",
-    task: "",
-    quiz: "",
+    title: "",
+    description: "",
+    article: "",
+    resources: [],
     link_lecture: "",
-    upload: "false",
-    group: groupId || "",
   });
+  const getToken = JSON.parse(localStorage.getItem("token"));
+
+  if (!getToken) {
+    toast.error("Unauthorized. Please log in.");
+    return;
+  }
   useEffect(() => {
-    axios.get(`http://localhost:1337/api/lecture/${lectureId}` ).then((res) => {
-      setdataUpdate(res.data.data.attributes);
+    axios.get(`http://localhost:8000/api/lectures/${lectureId}`,{
+      headers:{
+        Authorization:`${getToken}`
+      }
+    }).then((res) => {
+      setdataUpdate(res.data);
     });
   }, [lectureId]);
   const handleUpdate = (e) => {
     e.preventDefault();
     axios
       .put(
-        `http://localhost:1337/api/lecture/${lectureId}`,
-        { data: { ...dataUpdate, group: groupId } },
+        `http://localhost:8000/api/lectures/${lectureId}`,
+        {
+           group_id: groupId,
+          title:dataUpdate.title,
+          description:dataUpdate.description,
+          article:dataUpdate.article,
+          resources:dataUpdate.resources
+        },
         {
           headers: {
             "Content-Type": "application/json",
+            Authorization: `${getToken}`,
           },
         }
       )
@@ -52,33 +68,33 @@ function UpdateLecture() {
         <h2>Update Lecture</h2>
         <input
           type="text"
-          placeholder="lecuter_number"
+          placeholder="Title"
           className="border rounded p-2 mt-2 mb-2 m-lg-1 col-lg-3 col-md-10 col-sm-5"
           onChange={(e) =>
             setdataUpdate({
               ...dataUpdate,
-              lecuter_number: e.target.value,
+              title: e.target.value,
             })
           }
-          value={dataUpdate.lecuter_number}
+          value={dataUpdate.title}
         />
         <input
           type="text"
-          placeholder="Quiz"
+          placeholder="description"
           className=" border rounded p-2 mt-2 mb-2 m-lg-1 col-lg-3 col-md-10 col-sm-5"
           onChange={(e) =>
-            setdataUpdate({ ...dataUpdate, quiz: e.target.value })
+            setdataUpdate({ ...dataUpdate, description: e.target.value })
           }
-          value={dataUpdate.quiz}
+          value={dataUpdate.description}
         />
         <input
           type="text"
-          placeholder="task"
+          placeholder="article"
           className=" border rounded p-2 mt-2 mb-2 m-lg-1 col-lg-3 col-md-10 col-sm-5"
           onChange={(e) =>
-            setdataUpdate({ ...dataUpdate, task: e.target.value })
+            setdataUpdate({ ...dataUpdate, article: e.target.value })
           }
-          value={dataUpdate.task}
+          value={dataUpdate.article}
         />
         <input
           type="url"
@@ -87,33 +103,10 @@ function UpdateLecture() {
           onChange={(e) =>
             setdataUpdate({
               ...dataUpdate,
-              link_lecture: e.target.value,
+              resources: e.target.value,
             })
           }
-          value={dataUpdate.link_lecture}
-        />
-        {/* <select
-          name="upload"
-          className=" border rounded p-2 mt-2 mb-2 m-lg-1 col-lg-3 col-md-10 col-sm-5"
-          onChange={(e) => {
-            setdataUpdate({ ...dataUpdate, upload: e.target.value });
-          }}
-          value={dataUpdate.upload}
-        >
-          <option value="false">False</option>
-          <option value="true">True</option>
-        </select> */}
-        <input
-          type="date"
-          className="border rounded p-2 mt-2 mb-2 m-lg-1 col-lg-3 col-md-10 col-sm-5"
-          onChange={(e) =>
-            setdataUpdate({
-              ...dataUpdate,
-              group: e.target.value,
-            })
-          }
-          value={dataUpdate.group}
-          readOnly
+          value={dataUpdate.resources}
         />
       </form>
       <button className="btn btn-success col-3 " onClick={handleUpdate}>

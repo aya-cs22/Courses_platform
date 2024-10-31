@@ -35,7 +35,6 @@ function NewGroup() {
         {
           headers: {
             "Content-Type": "application/json",
-            // token is not token admin
             Authorization: ` ${getToken}`, 
           },
         }

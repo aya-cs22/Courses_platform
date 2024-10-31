@@ -2,7 +2,6 @@ import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
-
 function AllStudents() {
   const { groupId } = useParams();
 
@@ -16,12 +15,12 @@ function AllStudents() {
   const [allTasks, setAllTasks] = useState(10);
   const [allQuiz, setAllQuiz] = useState(10);
   const [evaluation, setEvaluation] = useState();
+  const getToken = JSON.parse(localStorage.getItem("token"));
   useEffect(() => {
     axios
       .get("http://localhost:8000/api/users", {
         headers: {
-          Authorization:
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3MWEyY2NjOWZlNGJmODlmMWZjYTk3MSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTcyOTc5MzA0MCwiZXhwIjoxNzI5ODAzODQwfQ.AI4c7QogO1eCV6zjoC7SP_HW0Z1zl4zuX0HzNUXSAI8",
+          Authorization: `${getToken}`,
         },
       })
       .then((res) => setStudents(res.data));
@@ -33,50 +32,48 @@ function AllStudents() {
     const evaluation = (allEvaluation / calcAllTask) * 100;
     setEvaluation(evaluation);
   }, []);
+  const handleChangeStudents = (e) => {
+    e.preventDefault();
+    setNewStudent(!newStudent);
+  };
 
   const [newStudent, setNewStudent] = useState(false);
   const [newDataStudent, setNewDataStudent] = useState({
+    group_id: groupId || null,
     name: "",
     email: "",
     password: "",
     phone_number: "",
     role: "user",
+    date_group: "",
   });
 
-  const handleChangeStudents = (e) => {
+  const handleAddStudent = async (e) => {
     e.preventDefault();
-    setNewStudent(!newStudent);
-  };
-  const handleAddStudent = (e) => {
-    e.preventDefault();
-    console.log(newDataStudent);
+    if (!getToken) {
+      toast.error("Unauthorized. Please log in.");
+      return;
+    }
 
-    axios
-      .post(
+    try {
+      await axios.post(
         "http://localhost:8000/api/users/adduser",
-        {
-          name: newDataStudent.name,
-          email: newDataStudent.email,
-          password: newDataStudent.password,
-          phone_number: newDataStudent.phone_number,
-          role: newDataStudent.role,
-        },
+        newDataStudent,
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization:
-              "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3MWEyY2NjOWZlNGJmODlmMWZjYTk3MSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTcyOTc5MzA0MCwiZXhwIjoxNzI5ODAzODQwfQ.AI4c7QogO1eCV6zjoC7SP_HW0Z1zl4zuX0HzNUXSAI8",
+            Authorization: `${getToken}`,
           },
         }
-      )
-      .then(() => {
-        toast.success("Successfly New Student");
-
-        setTimeout(() => {
-          setNewStudent(false);
-        }, 2000);
-      });
+      );
+      toast.success("Successfully added new student");
+      setNewStudent(false);
+    } catch (error) {
+      toast.error("Failed to add student");
+      console.error(error);
+    }
   };
+
   return (
     <>
       <ToastContainer />
@@ -87,7 +84,7 @@ function AllStudents() {
         </button>
       </div>
       {!newStudent ? (
-        <table className="text-center m-auto mt-2 mb-2">
+        <table className=" table text-center m-auto mt-2 mb-2">
           <thead>
             <tr>
               <th className="border">ID</th>
@@ -104,7 +101,7 @@ function AllStudents() {
           <tbody>
             {students &&
               students.map((item, index) => (
-                <tr key={item.id}>
+                <tr key={index}>
                   <td className="border">{index + 1}</td>
                   <td className="border">{item.name}</td>
                   <td className="border">{item.email}</td>
@@ -121,19 +118,32 @@ function AllStudents() {
                   <td className="border">
                     {evaluation.toString().slice(0, 5)}%
                   </td>
-                  <td className="border">{item.group}</td>
+                  <td className="border">
+                    <Link
+                      to={`/admin/student/${item._id}`}
+                      className="text-primary"
+                    >
+                      Details Student
+                    </Link>
+                  </td>
                 </tr>
               ))}
           </tbody>
         </table>
       ) : (
         <>
-          <form className="row p-2">
+          <form className="row m-2 w-100">
             <h2>New Student</h2>
             <input
               type="text"
+              value={groupId}
+              disabled
+              className=" border rounded p-2 m-2 col-lg-6 col-md-10 col-sm-5"
+            />
+            <input
+              type="text"
               placeholder="Username"
-              className="border rounded p-2 m-2 col-lg-3 col-md-10 col-sm-5"
+              className="border rounded p-2 m-2 col-lg-6 col-md-10 col-sm-5"
               onChange={(e) =>
                 setNewDataStudent({
                   ...newDataStudent,
@@ -142,9 +152,9 @@ function AllStudents() {
               }
             />
             <input
-              type="text"
+              type="email"
               placeholder="Email"
-              className=" border rounded p-2 m-2 col-lg-3 col-md-10 col-sm-5"
+              className=" border rounded p-2 m-2 col-lg-6 col-md-10 col-sm-5"
               onChange={(e) =>
                 setNewDataStudent({ ...newDataStudent, email: e.target.value })
               }
@@ -152,7 +162,7 @@ function AllStudents() {
             <input
               type="text"
               placeholder="password"
-              className=" border rounded p-2 m-2 col-lg-3 col-md-10 col-sm-5"
+              className=" border rounded p-2 m-2 col-lg-6 col-md-10 col-sm-5"
               onChange={(e) =>
                 setNewDataStudent({
                   ...newDataStudent,
@@ -163,7 +173,7 @@ function AllStudents() {
             <input
               type="text"
               placeholder="Number"
-              className=" border rounded p-2 m-2 col-lg-3 col-md-10 col-sm-5"
+              className=" border rounded p-2 m-2 col-lg-6 col-md-10 col-sm-5"
               onChange={(e) =>
                 setNewDataStudent({
                   ...newDataStudent,
@@ -171,17 +181,21 @@ function AllStudents() {
                 })
               }
             />
+
             <select
-              onChange={(e) => {
-                setNewDataStudent({ ...newDataStudent, role: e.target.value });
-              }}
-              className=" border rounded p-2 m-2 col-lg-3 col-md-10 col-sm-5"
+              className="border rounded p-2 m-2 col-lg-6 col-md-10 col-sm-5"
+              onChange={(e) =>
+                setNewDataStudent({ ...newDataStudent, role: e.target.value })
+              }
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
             </select>
           </form>
-          <button className="btn btn-primary col-3 " onClick={handleAddStudent}>
+          <button
+            className="btn btn-primary col-3 m-3 "
+            onClick={handleAddStudent}
+          >
             Create
           </button>
         </>

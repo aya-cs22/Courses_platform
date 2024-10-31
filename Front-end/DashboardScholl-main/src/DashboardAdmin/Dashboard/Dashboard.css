@@ -5,10 +5,10 @@ body{
 }
 ul {
     list-style: none;
-    color: white;
+    /* color: white; */
 }
 a{
-    color: white;
+    /* color: white; */
     text-decoration: none;
 }
 /* a:hover{

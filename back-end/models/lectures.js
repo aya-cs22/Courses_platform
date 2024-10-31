@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
 const taskSchema = new mongoose.Schema({
   taskLink: String,
-  adminLink: String,
-  deadline: Date,
+  description_task: String,
+  start_date: Date,
+  end_date: Date,
   submittedOnTime: { type: Boolean, default: false },
   score: { type: Number, default: 0 }
 });

@@ -13,7 +13,7 @@ function Dashboard() {
     attecndace: true,
   });
   const [loading, setLoading] = useState(false);
-  const [allData, setAllData] = useState({ data: [] });
+  const [allData, setAllData] = useState();
   const [offline, setOffline] = useState([]);
   const [online, setOnline] = useState([]);
   const [dark, setDark] = useState(false);
@@ -27,23 +27,20 @@ function Dashboard() {
     e.preventDefault();
     setToggleNav(!toggleNav);
   };
-  // useEffect(() => {
-  //   // axios.get("http://localhost:1337/api/groups").then((res) => {
-  //   //   console.log(res.data);
-  //   // });
-  //   const fetchData = async () => {
-  //     const response = await axios.get("http://localhost:1337/api/groups");
-  //     const onlineGroup = response.data.data.filter(
-  //       (item) => item.attributes.Name_group === "online"
-  //     );
-  //     setOnline(onlineGroup);
-  //     const offlineGroup = response.data.data.filter(
-  //       (item) => item.attributes.Name_group !== "online"
-  //     );
-  //     setOffline(offlineGroup);
-  //   };
-  //   fetchData();
-  // }, [allData]);
+  useEffect(() => {
+    const fetchData = async () => {
+      const response = await axios.get("http://localhost:8000/api/groups");
+      const onlineGroup = response.data.filter(
+        (item) => item.type_course === "online"
+      );
+      setOnline(onlineGroup);
+      const offlineGroup = response.data.filter(
+        (item) => item.type_course !== "online"
+      );
+      setOffline(offlineGroup);
+    };
+    fetchData();
+  }, [allData]);
   const handleOpen = (tag) => {
     // console.log("open");
     // setOpenTag(!openTag)
@@ -68,10 +65,7 @@ function Dashboard() {
           }`}
         >
           <li className="d-flex  align-items-center">
-            <button
-              className="btn btn-warning text-dark"
-              onClick={handleToggle}
-            >
+            <button className="btn btn-warning text-dark">
               <Link to={"/admin/newGroup"} className="text-dark">
                 New Group
               </Link>
@@ -107,14 +101,10 @@ function Dashboard() {
             <ul className={openTag.online ? "ulShow" : ""}>
               {loading
                 ? "Loading... "
-                : online.map((item) => (
-                    <Link
-                      to={`/admin/${item.attributes.Date_Group.slice(0, 10)}`}
-                      key={item.id}
-                    >
+                : online.map((item, index) => (
+                    <Link to={`/admin/${item._id}`} key={index}>
                       <li key={item.id}>
-                        {item.attributes.Name_group} -{" "}
-                        {item.attributes.Date_Group.slice(0, 10)}
+                        {item.type_course} -{item.start_date.slice(0, 10)}
                       </li>
                     </Link>
                   ))}
@@ -130,28 +120,23 @@ function Dashboard() {
             <ul className={openTag.offline ? "ulShow" : ""}>
               {loading
                 ? "Loading... "
-                : offline.map((item) => (
-                    <Link
-                      to={`/admin/${item.attributes.Date_Group.slice(0, 10)}`}
-                      key={item.id}
-                    >
+                : offline.map((item, index) => (
+                    <Link to={`/admin/${item._id}`} key={index}>
                       <li>
-                        {item.attributes.Name_group}
-                        {item.attributes.Date_Group.slice(0, 10)}
+                        {item.type_course}
+                        {item.start_date.slice(0, 10)}
                       </li>
                     </Link>
                   ))}
             </ul>
           </li>
           <li>
-            {/* <button
-              className="btn btn-warning text-dark   w-100 text-start "
-              // onClick={() => handleOpen("attecndace")}
-            > */}
-              <Link to={"/admin/qr"} className="btn btn-warning text-dark   w-100 text-start ">Attendance</Link>
-              
-            {/* </button> */}
-            <ul className={openTag.attecndace ? "ulShow" : ""}></ul>
+                  
+          <Link to={"/admin/lectures"}>
+              <button className="btn btn-warning text-dark w-100 text-start ">
+                Lectures
+              </button>
+            </Link>
           </li>
           <li>
             <Link to={"/admin/search"}>

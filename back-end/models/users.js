@@ -1,22 +1,26 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const userSchema = new mongoose.Schema({
-  name:{
+  group_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Groups',
+  },
+  name: {
     type: String,
     required: true
   },
-  email:{
+  email: {
     type: String,
-    unique:true,
+    unique: true,
     required: true,
     lowercase: true,
     match: [
-        /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-        'Please enter a valid email'
-      ]
+      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+      'Please enter a valid email'
+    ]
   },
   password: {
-    type:String,
+    type: String,
     required: true,
     minlength: [5, 'too short password']
   },
@@ -24,17 +28,20 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false // user need to virify your email
   },
-  phone_number :{
-    type:String,
+  phone_number: {
+    type: String,
     required: true,
     minlength: [11, 'too short password']
   },
   role: {
     type: String,
     enum: ['user', 'admin', 'assistant'],
-    default: function() {
+    default: function () {
       return this.email === process.env.ADMIN_EMAIL ? 'admin' : 'user';
     }
+  },
+  date_group: {
+    type: Date,
   },
   emailVerificationCode: { // Email verification code, set when a verification code is sent to the user
     type: String,
@@ -47,11 +54,11 @@ const userSchema = new mongoose.Schema({
   resetPasswordToken: {
     type: String,
     default: null
-},
-resetPasswordExpiry: {
+  },
+  resetPasswordExpiry: {
     type: Date,
     default: null
-},
+  },
 
   created_at: {
     type: Date,

@@ -1,35 +1,45 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { Link, Outlet, useLocation, useParams } from "react-router-dom";
+import {
+  Link,
+  Outlet,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./Lecture.css";
 
 function Lectures() {
-  const { groupId } = useParams();
+  const { groupId, lectureId } = useParams();
   const [loading, setLoading] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
   const [tableLecture, setTable] = useState(false);
-
   const [dataLecture, setDataLecture] = useState({
-    lecuter_number: "",
-    task: "",
-    quiz: "",
-    link_lecture: "",
-    upload: "false",
-    group: groupId,
+    title: "",
+    description: "",
+    article: "",
+    resources: [],
   });
+  const navigate = useNavigate();
   const [allDataLectures, setAllDataLectures] = useState([]);
 
+  const getToken = JSON.parse(localStorage.getItem("token"));
+
+  if (!getToken) {
+    toast.error("Unauthorized. Please log in.");
+    return;
+  }
   const handleClick = () => {
     setIsClicked(!isClicked);
   };
   useEffect(() => {
     const fetchDataGroup = async () => {
       setLoading(true);
-      const response = await axios.get("http://localhost:1337/api/lecture");
-      const filterGroup = response.data.data.filter(
-        (item) => item.attributes.group === groupId
+      const response = await axios.get("http://localhost:8000/api/lectures");
+      const filterGroup = response.data.filter(
+        (item) => item.group_id === groupId
       );
 
       setAllDataLectures(filterGroup);
@@ -44,13 +54,20 @@ function Lectures() {
   };
   const handleAddLecture = async (e) => {
     e.preventDefault();
-    if (dataLecture.lecuter_number && dataLecture.task && dataLecture.quiz) {
+    if (dataLecture.title && dataLecture.description && dataLecture.article) {
       await axios.post(
-        "http://localhost:1337/api/lecture",
-        { data: dataLecture },
+        "http://localhost:8000/api/lectures",
+        {
+          group_id: groupId,
+          title: dataLecture.title,
+          description: dataLecture.description,
+          article: dataLecture.article,
+          resources: dataLecture.resources,
+        },
         {
           headers: {
             "Content-Type": "application/json",
+            Authorization: `${getToken}`,
           },
         }
       );
@@ -59,10 +76,25 @@ function Lectures() {
         setTable(false);
       }, 2000);
     } else {
-      // alert("plase inter all data");
+      // alert("please inter all data");
       toast.error("Error !");
     }
   };
+  const handleDeleteLecture = (id) => {
+    // console.log(id)
+    axios
+      .delete("http://localhost:8000/api/lectures/" + id, {
+        headers: {
+          Authorization: `${getToken}`,
+        },
+      })
+      .then(() => toast.success("Delete Lecture Successful"));
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 3000);
+  };
+
   return (
     <>
       <ToastContainer position="top-right" />
@@ -72,38 +104,55 @@ function Lectures() {
       <button className="btn btn-success m-2" onClick={handleChangeLecture}>
         {tableLecture ? "Show Lectures" : "New Lecture"}
       </button>
+
       {!tableLecture ? (
         <main className="container m-auto  mt-2 p-2 row  lectures-card">
           {allDataLectures.map((item, index) => (
             <div className="card" key={index}>
               <ul className="list-group list-group-flush ">
+                <li className="list-group-item">Number :{item.title}</li>
+                <li className="list-group-item">article :{item.article}</li>
                 <li className="list-group-item">
-                  Number :{item.attributes.lecuter_number}
+                  description : {item.description}
                 </li>
                 <li className="list-group-item">
-                  Quiz :{item.attributes.quiz}
-                </li>
-                <li className="list-group-item">
-                  Task : {item.attributes.task}
-                </li>
-                <li className="list-group-item">
-                  <Link target="_blank"
-                    to={item.attributes.link_lecture}
+                  <Link
+                    target="_blank"
+                    to={item.resources}
                     className="text-primary"
                   >
                     Link Lecture
                   </Link>
                 </li>
                 <li className="list-group-item">Attendance : </li>
+                <li className="list-group-item">Upload : {item.upload}</li>
                 <li className="list-group-item">
-                  Upload : {item.attributes.upload}
+                  <Link to={`/admin/${groupId}/lectures/newTask/${item._id}`}>
+                    <button className="btn btn-primary">New Task</button>
+                  </Link>
+                  <button className="btn btn-success ">
+                    <Link
+                      to={`/admin/${groupId}/tasks/${item._id}`}
+                      className="text-light "
+                    >
+                      View Task
+                    </Link>
+                  </button>
                 </li>
+
                 <li>
-                  <Link to={`/admin/${groupId}/lectures/update/${item.id}`}>
+                  <Link to={`/admin/${groupId}/lectures/update/${item._id}`}>
                     <button className="btn btn-success m-2">Update</button>
                   </Link>
 
-                  <button className="btn btn-danger m-2">Delete</button>
+                  <button
+                    className="btn btn-danger m-2"
+                    onClick={() => {
+                      handleDeleteLecture(item._id);
+                    }}
+                  >
+                    Delete
+                  </button>
                 </li>
               </ul>
             </div>
@@ -115,29 +164,29 @@ function Lectures() {
             <h2>New Lecture</h2>
             <input
               type="text"
-              placeholder="lecuter_number"
+              placeholder="Title"
               className="border rounded p-2 m-2 col-lg-6 col-md-10 col-sm-5"
               onChange={(e) =>
                 setDataLecture({
                   ...dataLecture,
-                  lecuter_number: e.target.value,
+                  title: e.target.value,
                 })
               }
             />
             <input
               type="text"
-              placeholder="Quiz"
+              placeholder="article"
               className=" border rounded p-2 m-2 col-lg-6 col-md-10 col-sm-5"
               onChange={(e) =>
-                setDataLecture({ ...dataLecture, quiz: e.target.value })
+                setDataLecture({ ...dataLecture, article: e.target.value })
               }
             />
             <input
               type="text"
-              placeholder="task"
+              placeholder="description"
               className=" border rounded p-2 m-2 col-lg-6 col-md-10 col-sm-5"
               onChange={(e) =>
-                setDataLecture({ ...dataLecture, task: e.target.value })
+                setDataLecture({ ...dataLecture, description: e.target.value })
               }
             />
             <input
@@ -147,32 +196,15 @@ function Lectures() {
               onChange={(e) =>
                 setDataLecture({
                   ...dataLecture,
-                  link_lecture: e.target.value,
-                })
-              }
-            />
-            <select
-              className=" border rounded p-2 m-2 col-lg-6 col-md-10 col-sm-5"
-              onChange={(e) => {
-                setDataLecture({ ...dataLecture, upload: e.target.value });
-              }}
-            >
-              <option value="false">False</option>
-              <option value="true">True</option>
-            </select>
-            <input
-              type="date"
-              className="border rounded p-2 m-2 col-lg-6 col-md-10 col-sm-5"
-              value={groupId}
-              onChange={(e) =>
-                setDataLecture({
-                  ...dataLecture,
-                  group:groupId,
+                  resources: e.target.value,
                 })
               }
             />
           </form>
-          <button className="btn btn-primary col-lg-3 col-md-5 ms-4 " onClick={handleAddLecture}>
+          <button
+            className="btn btn-primary col-lg-3 col-md-5 ms-4 "
+            onClick={handleAddLecture}
+          >
             Create
           </button>
         </>

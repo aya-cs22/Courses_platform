@@ -17,6 +17,7 @@ import Tasks from "./DashboardAdmin/Tasks/Tasks";
 // students
 import Students from "./DashboardAdmin/Students/Students";
 import AllStudents from "./DashboardAdmin/Students/AllStudents";
+import NewTask from "./DashboardAdmin/Tasks/NewTask";
 // lecture
 import Lectures from "./DashboardAdmin/Lectures/Lectures";
 import UpdateLecture from "./DashboardAdmin/Lectures/UpdateLecture";
@@ -27,6 +28,8 @@ import Register from "./DashboardAdmin/Users/Register";
 import LoginUser from "./DashboardAdmin/Users/Login";
 import LectureQRCode from "./DashboardAdmin/Lectures/LectureQRCode";
 import FormQr from "./DashboardAdmin/Users/FormQr";
+import DetailsStudent from "./DashboardAdmin/Students/DetailsStudent";
+import ForgetPass from "./DashboardAdmin/Users/ForgetPass";
 
 const helmetContext = {};
 
@@ -61,6 +64,10 @@ function App() {
           element: <AllStudents />,
         },
         {
+          path: "/admin/student/:studentId",
+          element: <DetailsStudent />,
+        },
+        {
           path: "/admin/qr",
           element: <LectureQRCode />,
         },
@@ -84,6 +91,10 @@ function App() {
               path: "/admin/:groupId/lectures/update/:lectureId",
               element: <UpdateLecture />,
             },
+            {
+              path: "/admin/:groupId/lectures/newTask/:lectureId",
+              element: <NewTask />,
+            },
           ],
         },
       ],
@@ -96,6 +107,10 @@ function App() {
     {
       path: "/login",
       element: <LoginUser />,
+    },
+    {
+      path: "/forgetpassword",
+      element: <ForgetPass />,
     },
     {
       path: "/attendance?/:id",
