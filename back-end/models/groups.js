@@ -24,6 +24,14 @@ const groupsSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
+  lifetimeAccess: {
+    type: Boolean,
+    default: false, // False if it's not lifetime access
+  },
+  members: [{
+    user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, 
+    accessExpiresAt: { type: Date},
+  }],
   created_at: {
     type: Date,
     default: Date.now,

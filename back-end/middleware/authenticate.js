@@ -4,7 +4,7 @@ const authenticate = (req, res, next) => {
   if(!authHeader){
     return res.status(401).json({ message : 'Authentication token required'});
   }
-  const token = authHeader.replace('Bearer', '');
+  const token = authHeader.replace('Bearer', '').trim();
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded; // Store user information in req.user
