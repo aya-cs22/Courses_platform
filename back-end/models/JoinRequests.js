@@ -22,6 +22,10 @@ const JoinRequestsSchema = new mongoose.Schema({
   endDate: {
     type: Date, // Membership End date
   },
+  lifetimeAccess: {
+    type: Boolean,
+    default: false, // False if it's not lifetime access
+  },
   create_at: {
     type: Date,
     default: Date.now,

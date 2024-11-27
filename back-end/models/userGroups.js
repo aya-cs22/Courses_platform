@@ -10,7 +10,6 @@ const userGroupSchema  = new mongoose.Schema({
         ref: 'Groups',
         required: true,
     },
-
     status: {
         type: String,
         enum: ['active', 'inactive'],

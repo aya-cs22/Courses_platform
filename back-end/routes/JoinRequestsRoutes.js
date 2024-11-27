@@ -8,7 +8,7 @@ router.post('/join-request', authMiddleware, JoinRequestsController.sendJoinRequ
 router.get('/get-all-join-requests', authMiddleware, JoinRequestsController.getAllJoinRequests);
 router.post('/approve-join-request', authMiddleware, JoinRequestsController.approveJoinRequest);
 router.post('/reject-Join-request', authMiddleware, JoinRequestsController.rejectJoinRequest);
-router.delete('/delet-join-request', authMiddleware, JoinRequestsController.deletJoinRequest);
+router.delete('/delet-join-request', authMiddleware, JoinRequestsController.deleteJoinRequest);
 router.put('/update-join-requestStatus', authMiddleware, JoinRequestsController.updateJoinRequestStatus);
 
 module.exports = router;

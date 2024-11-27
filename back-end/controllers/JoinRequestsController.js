@@ -108,12 +108,15 @@ exports.getAllJoinRequests = async(req, res) => {
     }
 };
 
-// accept request
+
+
+// Approve join request
 exports.approveJoinRequest = async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
-          }
+        }
+
         const { requestId, startDate, endDate, lifetimeAccess } = req.body;
 
         // Find the join request
@@ -132,37 +135,49 @@ exports.approveJoinRequest = async (req, res) => {
             return res.status(404).json({ message: 'Group not found' });
         }
 
-        // Validate the dates if not lifetime access
+        // Validate the dates if lifetimeAccess is false
         const momentStartDate = moment(startDate);
-        const momentEndDate = moment(endDate);
 
-        if (!momentStartDate.isValid() || (!lifetimeAccess && !momentEndDate.isValid())) {
-            return res.status(400).json({ message: 'Invalid start or end date' });
+        if (!momentStartDate.isValid()) {
+            return res.status(400).json({ message: 'Invalid start date' });
         }
 
-        if (!lifetimeAccess && momentEndDate.isBefore(momentStartDate)) {
-            return res.status(400).json({ message: 'End date must be after start date' });
+        if (!lifetimeAccess) {
+            const momentEndDate = moment(endDate);
+
+            if (!momentEndDate.isValid()) {
+                return res.status(400).json({ message: 'Invalid end date' });
+            }
+
+            if (momentEndDate.isBefore(momentStartDate)) {
+                return res.status(400).json({ message: 'End date must be after start date' });
+            }
+
+            joinRequest.endDate = momentEndDate.toDate();
+        } else {
+            joinRequest.endDate = null; // No end date for lifetime access
         }
 
         joinRequest.status = 'approved';
-        joinRequest.startDate = momentStartDate;
-        joinRequest.endDate = lifetimeAccess ? null : momentEndDate;
+        joinRequest.startDate = momentStartDate.toDate();
         joinRequest.lifetimeAccess = lifetimeAccess;
         await joinRequest.save();
 
-        if (!group.members.some(member => member._id.toString() === joinRequest.user_id.toString())) {
+        // Add member to the group if not already added
+        if (!group.members.some(member => member.toString() === joinRequest.user_id.toString())) {
             group.members.push(joinRequest.user_id);
             await group.save();
         }
 
-
+        // Create userGroup record
         const userGroupRecord = new userGroup({
             user_id: joinRequest.user_id,
             group_id: joinRequest.group_id,
-            status: 'active', 
+            status: 'active',
         });
         await userGroupRecord.save();
-        console.log(`userGroupRecord ${userGroupRecord.status}`);
+
+        // Send email notification to user
         const user = await User.findById(joinRequest.user_id);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -177,7 +192,7 @@ exports.approveJoinRequest = async (req, res) => {
       
 Your request to join the group "${group.title}" has been approved.
 
-${lifetimeAccess ? 'You have lifetime access to this group.' : `You can access the group until ${momentEndDate.format('YYYY-MM-DD')}.`}
+${lifetimeAccess ? 'You have lifetime access to this group.' : `You can access the group until ${moment(endDate).format('YYYY-MM-DD')}.`}
 
 Best Regards,  
 Your App Team`
@@ -207,6 +222,8 @@ exports.rejectJoinRequest = async (req, res) => {
         }
 
         const { requestId } = req.body;
+
+        // Find the join request
         const request = await JoinRequests.findById(requestId);
         if (!request) {
             return res.status(404).json({ message: 'Join request not found' });
@@ -216,45 +233,65 @@ exports.rejectJoinRequest = async (req, res) => {
         request.status = 'rejected';
         await request.save();
 
-        // Check if the user is already in the userGroup collection and delete the entry
-        const userGroupRecord = await userGroup.findOneAndDelete({
+        // Check if the user is in the userGroup and update status to inactive
+        const userGroupRecord = await userGroup.findOne({
             user_id: request.user_id,
             group_id: request.group_id
         });
-        
-        if (!userGroupRecord) {
-            return res.status(404).json({ message: 'User is not a member of this group' });
+
+        if (userGroupRecord) {
+            userGroupRecord.status = 'inactive';
+            await userGroupRecord.save();
+
+            // Remove the user from the group members
+            const group = await Groups.findById(request.group_id);
+            if (group) {
+                group.members = group.members.filter(member => member.toString() !== request.user_id.toString());
+                await group.save();
+            }
         }
 
-        res.status(200).json({ message: 'Join request rejected and user removed from group', request });
+        res.status(200).json({ message: 'Join request rejected and user removed from group (if present)', request });
     } catch (error) {
+        console.error('Error rejecting join request:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 
-// Delete the join request and the related userGroup
-exports.deletJoinRequest = async(req, res) => {
+// Delete the join request, related userGroup, and remove user from group members
+exports.deleteJoinRequest = async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
 
         const { requestId } = req.body;
+
+        // Delete the join request
         const request = await JoinRequests.findByIdAndDelete(requestId);
         if (!request) {
             return res.status(404).json({ message: 'Join request not found' });
         }
+
+        // Delete the related userGroup entry
         await userGroup.deleteOne({ user_id: request.user_id, group_id: request.group_id });
 
-        res.status(200).json({ message: 'Join request and related userGroup entry deleted', request });
+        // Remove the user from group members if present
+        const group = await Groups.findById(request.group_id);
+        if (group) {
+            group.members = group.members.filter(member => member.toString() !== request.user_id.toString());
+            await group.save();
+        }
+
+        res.status(200).json({ message: 'Join request, related userGroup entry, and user removed from group members', request });
     } catch (error) {
+        console.error('Error deleting join request:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
-
 exports.updateJoinRequestStatus = async (req, res) => {
     const { userId, groupId, status, startDate, endDate } = req.body;
-    console.log('userId:', userId, 'groupId:', groupId); // For debugging
+    console.log('userId:', userId, 'groupId:', groupId);
 
     try {
         if (req.user.role !== 'admin') {
@@ -267,7 +304,7 @@ exports.updateJoinRequestStatus = async (req, res) => {
         }
 
         if (!['pending', 'approved', 'rejected'].includes(status)) {
-            return res.status(400).json({ message: 'Request status is invalid' });
+            return res.status(400).json({ message: 'Invalid status' });
         }
 
         if (startDate || endDate) {
@@ -291,28 +328,42 @@ exports.updateJoinRequestStatus = async (req, res) => {
         await joinRequest.save();
 
         const userGroupRecord = await userGroup.findOne({ user_id: userId, group_id: groupId });
-        if (userGroupRecord) {
-            if (status === 'approved') {
+        const group = await Groups.findById(groupId);
+
+        if (status === 'approved') {
+            if (!userGroupRecord) {
+                const newUserGroup = new userGroup({
+                    user_id: userId,
+                    group_id: groupId,
+                    status: 'active',
+                    startDate: joinRequest.startDate,
+                    endDate: joinRequest.endDate,
+                });
+
+                await newUserGroup.save();
+
+                if (group && !group.members.includes(userId)) {
+                    group.members.push(userId);
+                    await group.save();
+                }
+            } else if (userGroupRecord.status !== 'active') {
                 userGroupRecord.status = 'active';
-                if (startDate) userGroupRecord.startDate = joinRequest.startDate;
-                if (endDate) userGroupRecord.endDate = joinRequest.endDate;
-            } else {
-                userGroupRecord.status = 'inactive';
+                await userGroupRecord.save();
             }
-            await userGroupRecord.save();
-        } else if (status === 'approved') {
-            const newUserGroup = new userGroup({
-                user_id: userId,
-                group_id: groupId,
-                status: 'active',
-                startDate: joinRequest.startDate,
-                endDate: joinRequest.endDate,
-            });
-            await newUserGroup.save();
+        } else {
+            if (userGroupRecord) {
+                userGroupRecord.status = 'inactive';
+                await userGroupRecord.save();
+            }
+
+            if (group) {
+                group.members = group.members.filter(member => member.toString() !== userId.toString());
+                await group.save();
+            }
         }
 
         return res.status(200).json({
-            message: 'Status and membership duration updated successfully',
+            message: 'Status and membership updated successfully',
             joinRequest,
         });
     } catch (error) {

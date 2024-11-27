@@ -2,6 +2,7 @@ const UserGroup = require('../models/userGroups');
 const Groups = require('../models/groups');
 const JoinRequests = require('../models/JoinRequests');
 const moment = require('moment');
+const { use } = require('../config/mailConfig');
 
 exports.getUserGroups = async (req, res) => {
     try {
@@ -62,7 +63,7 @@ exports.getGroupMembers = async (req, res) => {
 
         const group = await Groups.findById(groupId).populate({
             path: 'members',
-            match: { status: 'active' }, // Only include active members
+            match: { 'status': 'active' }, 
         });
 
         if (!group) {
@@ -75,6 +76,7 @@ exports.getGroupMembers = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
 
 exports.getActiveGroup = async (req, res) => {
     try {
