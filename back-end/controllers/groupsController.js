@@ -77,6 +77,28 @@ exports.updateGroupsById = async (req, res) => {
     }
 };
 
+
+
+exports.sendGroupId = async (req, res) => {
+    try {
+        const { groupId } = req.body;
+
+        if (!groupId) {
+            return res.status(400).json({ message: 'Group ID is required' });
+        }
+
+        const group = await Groups.findById(groupId);
+        if (!group) {
+            return res.status(404).json({ message: 'Group not found' });
+        }
+        res.status(200).json({ message: 'Group found', groupId: group._id });
+    } catch (error) {
+        console.error('Error sending group ID:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+
 exports.deleteGroupsById = async (req, res) => {
     try {
         const { id } = req.params;

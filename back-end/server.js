@@ -8,7 +8,7 @@ dotenv.config({ path: 'config.env' });
 const dbConnection = require('./config/db');
 const userController = require('./controllers/userController');
 const cron = require('node-cron');
-const Groups = require('./models/groups.js')
+// const Groups = require('./models/groups.js')
 // Connect with DB
 dbConnection();
 
@@ -49,25 +49,25 @@ app.use((err, req, res, next) => {
 });
 
 
-cron.schedule('* * * * *', async () => {
-    try {
-        const groups = await Groups.find();
+// cron.schedule('* * * * *', async () => {
+//     try {
+//         const groups = await Groups.find();
 
-        for (let group of groups) {
-            for (let memberId of group.members) {
-                const userGroupRecord = await userGroup.findOne({ user_id: memberId, group_id: group._id });
-                if (userGroupRecord && userGroupRecord.status !== 'active') {
-                    group.members = group.members.filter(member => member.toString() !== memberId.toString());
-                    await group.save();
+//         for (let group of groups) {
+//             for (let memberId of group.members) {
+//                 const userGroupRecord = await userGroup.findOne({ user_id: memberId, group_id: group._id });
+//                 if (userGroupRecord && userGroupRecord.status !== 'active') {
+//                     group.members = group.members.filter(member => member.toString() !== memberId.toString());
+//                     await group.save();
 
-                    console.log(`User ${memberId} removed from group ${group._id} due to inactive status`);
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error in scheduled task:', error);
-    }
-});
+//                     console.log(`User ${memberId} removed from group ${group._id} due to inactive status`);
+//                 }
+//             }
+//         }
+//     } catch (error) {
+//         console.error('Error in scheduled task:', error);
+//     }
+// });
 
 
 
