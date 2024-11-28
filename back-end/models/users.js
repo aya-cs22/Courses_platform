@@ -40,9 +40,9 @@ const userSchema = new mongoose.Schema({
       return this.email === process.env.ADMIN_EMAIL ? 'admin' : 'user';
     }
   },
-  date_group: {
-    type: Date,
-  },
+  // date_group: {
+  //   type: Date,
+  // },
 
   feedback : {
     type:String,

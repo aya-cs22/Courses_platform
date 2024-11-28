@@ -16,7 +16,8 @@ router.get('/get-feedback-by-id/:userId', authMiddleware, userController.getFeed
 
 
 router.post('/adduser', authMiddleware, userController.addUser);
-router.get('/:id', authMiddleware, userController.getUser);
+router.get('/', authMiddleware, userController.getUser);
+router.get('/:id', authMiddleware, userController.getUserByid);
 router.get('/', authMiddleware, userController.getAllUsers);
 router.put('/:id', authMiddleware, userController.updateUser);
 router.delete('/:id', authMiddleware, userController.deleteUser);

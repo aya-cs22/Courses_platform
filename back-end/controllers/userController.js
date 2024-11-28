@@ -20,6 +20,18 @@ exports.register = async (req, res) => {
             return res.status(400).json({ message: 'Password is required' });
         }
 
+        if (!email) {
+            return res.status(400).json({ message: 'email is required' });
+        }
+
+        if (!name) {
+            return res.status(400).json({ message: 'name is required' });
+        }
+
+        if (!phone_number) {
+            return res.status(400).json({ message: 'phone number is required' });
+        }
+
         let user = await User.findOne({ email });
         if (user) {
             return res.status(400).json({ message: 'User already exists' });
@@ -200,31 +212,31 @@ exports.resetPassword = async (req, res) => {
 };
 
 
-exports.updatePassword = async (req, res) => {
-    const { id } = req.params;
-    const { password } = req.body;
+// exports.updatePassword = async (req, res) => {
+//     const { id } = req.params;
+//     const { password } = req.body;
 
-    try {
-        if (req.user.id === id) {
-            const updates = {};
-            if (password) {
-                const salt = await bcrypt.genSalt(10);
-                updates.password = await bcrypt.hash(password, salt);
-            }
-            const user = await User.findByIdAndUpdate(id, updates, { new: true });
-            if (!user) {
-                return res.status(404).json({ message: 'User not found' });
-            }
+//     try {
+//         if (req.user.id === id) {
+//             const updates = {};
+//             if (password) {
+//                 const salt = await bcrypt.genSalt(10);
+//                 updates.password = await bcrypt.hash(password, salt);
+//             }
+//             const user = await User.findByIdAndUpdate(id, updates, { new: true });
+//             if (!user) {
+//                 return res.status(404).json({ message: 'User not found' });
+//             }
 
-            res.status(200).json({ message: 'Password updated successfully' });
-        } else {
-            res.status(403).json({ message: 'You are not authorized to update this password' });
-        }
-    } catch (error) {
-        console.error('Error updating password:', error);
-        res.status(500).json({ message: 'Server error' });
-    }
-};
+//             res.status(200).json({ message: 'Password updated successfully' });
+//         } else {
+//             res.status(403).json({ message: 'You are not authorized to update this password' });
+//         }
+//     } catch (error) {
+//         console.error('Error updating password:', error);
+//         res.status(500).json({ message: 'Server error' });
+//     }
+// };
 
 exports.login = async (req, res) => {
     const { email, password } = req.body;
@@ -306,8 +318,25 @@ exports.addUser = async (req, res) => {
 }
 };
 
-// get user by id
+// get user by token
 exports.getUser = async (req, res) => {
+    try {
+        const userIdFromToken = req.user.id; 
+        const user = await User.findById(userIdFromToken);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        const userResponse = { ...user._doc, password: undefined };
+
+        res.status(200).json(userResponse);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// get user by id
+exports.getUserByid = async (req, res) => {
     try {
         const { id } = req.params;
         if (!/^[0-9a-fA-F]{24}$/.test(id)) {
@@ -338,6 +367,7 @@ exports.getUser = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
 
 exports.getAllUsers = async (req, res) => {
     try {
@@ -456,7 +486,7 @@ exports.submitFeedback = async (req, res) => {
     }
   };
 
-  exports.getAllFeedback = async (req, res) => {
+exports.getAllFeedback = async (req, res) => {
     try {
       const users = await User.find({ feedback: { $exists: true, $ne: null } });
       if (users.length === 0) {
