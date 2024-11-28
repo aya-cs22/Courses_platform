@@ -429,3 +429,68 @@ exports.deleteUser = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+
+//the user send your feedback
+exports.submitFeedback = async (req, res) => {
+    const { email, feedback } = req.body;
+  
+    if (!email || !feedback) {
+      return res.status(400).json({ message: 'Email and feedback are required' });
+    }
+  
+    try {
+      const user = await User.findOne({ email });
+  
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      user.feedback = feedback;
+      await user.save();
+  
+      res.status(200).json({ message: 'Feedback submitted successfully' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  };
+
+  exports.getAllFeedback = async (req, res) => {
+    try {
+      const users = await User.find({ feedback: { $exists: true, $ne: null } });
+      if (users.length === 0) {
+        return res.status(404).json({ message: 'No feedback found' });
+      }
+  
+      const feedbacks = users.map(user => ({ email: user.email, feedback: user.feedback }));
+  
+      res.status(200).json({ feedbacks });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  };
+
+
+  // Get feedback by user ID
+exports.getFeedbackById = async (req, res) => {
+    const { userId } = req.params;
+  
+    try {
+      const user = await User.findById(userId);
+    
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      if (!user.feedback) {
+        return res.status(404).json({ message: 'No feedback available for this user' });
+      }
+  
+      res.status(200).json({ email: user.email, feedback: user.feedback });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  };

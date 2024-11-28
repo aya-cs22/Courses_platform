@@ -4,6 +4,7 @@ const User = require('../models/users');
 const Groups = require('../models/groups');
 const moment = require('moment');
 const userGroup = require('../models/userGroups');
+const mongoose = require('mongoose');
 
 // Send join request function
 exports.sendJoinRequest = async (req, res) => {
@@ -289,9 +290,95 @@ exports.deleteJoinRequest = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+
+
+// exports.updateJoinRequestStatus = async (req, res) => {
+//     const { userId, groupId, status, startDate, endDate } = req.body;
+//     console.log('userId:', userId, 'groupId:', groupId);
+
+//     try {
+//         if (req.user.role !== 'admin') {
+//             return res.status(403).json({ message: 'Access denied' });
+//         }
+
+//         const joinRequest = await JoinRequests.findOne({ user_id: userId, group_id: groupId });
+//         if (!joinRequest) {
+//             return res.status(404).json({ message: 'Request not found' });
+//         }
+
+//         if (!['pending', 'approved', 'rejected'].includes(status)) {
+//             return res.status(400).json({ message: 'Invalid status' });
+//         }
+
+//         if (startDate || endDate) {
+//             const momentStartDate = moment(startDate, 'YYYY-MM-DD', true);
+//             const momentEndDate = moment(endDate, 'YYYY-MM-DD', true);
+
+//             if (!momentStartDate.isValid() || (endDate && !momentEndDate.isValid())) {
+//                 return res.status(400).json({ message: 'Invalid start or end date' });
+//             }
+
+//             if (endDate && momentEndDate.isBefore(momentStartDate)) {
+//                 return res.status(400).json({ message: 'End date must be after start date' });
+//             }
+
+//             joinRequest.startDate = momentStartDate.toDate();
+//             joinRequest.endDate = endDate ? momentEndDate.toDate() : null;
+//         }
+
+//         joinRequest.status = status;
+//         joinRequest.updated_at = Date.now();
+//         await joinRequest.save();
+
+//         const userGroupRecord = await userGroup.findOne({ user_id: userId, group_id: groupId });
+//         const group = await Groups.findById(groupId);
+
+//         if (status === 'approved') {
+//             if (!userGroupRecord) {
+//                 const newUserGroup = new userGroup({
+//                     user_id: userId,
+//                     group_id: groupId,
+//                     status: 'active',
+//                     startDate: joinRequest.startDate,
+//                     endDate: joinRequest.endDate,
+//                 });
+
+//                 await newUserGroup.save();
+
+//                 if (group && !group.members.some(member => member.user_id.toString() === userId.toString())) {
+//                     group.members.push({ user_id: userId });
+//                     await group.save();
+//                 }
+//             } else if (userGroupRecord.status !== 'active') {
+//                 userGroupRecord.status = 'active';
+//                 await userGroupRecord.save();
+//             }
+//         } else {
+//             if (userGroupRecord) {
+//                 userGroupRecord.status = 'inactive';
+//                 await userGroupRecord.save();
+//             }
+
+//             if (group && group.members.length > 0) {
+//                 group.members = group.members.filter(member => member.user_id && member.user_id.toString() !== userId.toString());
+//                 await group.save();
+//             }
+//         }
+
+//         return res.status(200).json({
+//             message: 'Status and membership updated successfully',
+//             joinRequest,
+//         });
+//     } catch (error) {
+//         console.error('Error updating join request status:', error);
+//         return res.status(500).json({ message: 'Server error', error: error.message });
+//     }
+// };
+
+
 exports.updateJoinRequestStatus = async (req, res) => {
     const { userId, groupId, status, startDate, endDate } = req.body;
-    console.log('userId:', userId, 'groupId:', groupId);
 
     try {
         if (req.user.role !== 'admin') {
@@ -308,8 +395,8 @@ exports.updateJoinRequestStatus = async (req, res) => {
         }
 
         if (startDate || endDate) {
-            const momentStartDate = moment(startDate);
-            const momentEndDate = moment(endDate);
+            const momentStartDate = moment(startDate, 'YYYY-MM-DD', true);
+            const momentEndDate = moment(endDate, 'YYYY-MM-DD', true);
 
             if (!momentStartDate.isValid() || (endDate && !momentEndDate.isValid())) {
                 return res.status(400).json({ message: 'Invalid start or end date' });
@@ -326,9 +413,13 @@ exports.updateJoinRequestStatus = async (req, res) => {
         joinRequest.status = status;
         joinRequest.updated_at = Date.now();
         await joinRequest.save();
-
         const userGroupRecord = await userGroup.findOne({ user_id: userId, group_id: groupId });
         const group = await Groups.findById(groupId);
+        if (!group) {
+            return res.status(404).json({ message: 'Group not found' });
+        }
+        console.log("Group before update:", group);
+        console.log("Group members before update:", group.members);
 
         if (status === 'approved') {
             if (!userGroupRecord) {
@@ -341,27 +432,43 @@ exports.updateJoinRequestStatus = async (req, res) => {
                 });
 
                 await newUserGroup.save();
+                console.log('New userGroup added:', newUserGroup);
 
-                if (group && !group.members.includes(userId)) {
-                    group.members.push(userId);
+                const userObjectId = mongoose.Types.ObjectId(userId);
+                console.log("Trying to add userId:", userObjectId);
+                if (!Array.isArray(group.members)) {
+                    group.members = [];
+                }
+                const memberExists = group.members.some(member => member.user_id && member.user_id.toString() === userObjectId.toString());
+                console.log("Member exists:", memberExists);
+
+                if (!memberExists) {
+                    console.log("Adding userId to group:", userObjectId);
+                    group.members.push({ user_id: userId });
+                    group.updated_at = Date.now(); 
                     await group.save();
+                    console.log("Group after member added:", group);
+                } else {
+                    console.log("User already a member of the group.");
                 }
             } else if (userGroupRecord.status !== 'active') {
                 userGroupRecord.status = 'active';
                 await userGroupRecord.save();
+                console.log("User group status updated to active:", userGroupRecord);
             }
         } else {
             if (userGroupRecord) {
                 userGroupRecord.status = 'inactive';
                 await userGroupRecord.save();
+                console.log("User group status updated to inactive:", userGroupRecord);
             }
 
-            if (group) {
-                group.members = group.members.filter(member => member.toString() !== userId.toString());
-                await group.save();
-            }
+            group.members = group.members.filter(member => member.user_id.toString() !== userId.toString());
+            group.updated_at = Date.now();
+            await group.save();
+            console.log("Group after member removed:", group);
         }
-
+        console.log("Group members after update:", group.members);
         return res.status(200).json({
             message: 'Status and membership updated successfully',
             joinRequest,

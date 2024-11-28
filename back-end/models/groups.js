@@ -26,7 +26,7 @@ const groupsSchema = new mongoose.Schema({
   },
   
   members: [{
-    user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, 
+    user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
   }],
   created_at: {
     type: Date,

@@ -43,6 +43,10 @@ const userSchema = new mongoose.Schema({
   date_group: {
     type: Date,
   },
+
+  feedback : {
+    type:String,
+  },
   emailVerificationCode: { // Email verification code, set when a verification code is sent to the user
     type: String,
     default: null
