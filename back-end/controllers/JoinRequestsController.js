@@ -329,6 +329,7 @@ exports.updateJoinRequestStatus = async (req, res) => {
         if (!['pending', 'approved', 'rejected'].includes(status)) {
             return res.status(400).json({ message: 'Invalid status' });
         }
+
         if (startDate || endDate) {
             const momentStartDate = moment(startDate, 'YYYY-MM-DD', true);
             const momentEndDate = moment(endDate, 'YYYY-MM-DD', true);
@@ -344,59 +345,60 @@ exports.updateJoinRequestStatus = async (req, res) => {
             joinRequest.startDate = momentStartDate.toDate();
             joinRequest.endDate = endDate ? momentEndDate.toDate() : null;
         }
+
         joinRequest.status = status;
         joinRequest.updated_at = Date.now();
         await joinRequest.save();
+
         const group = await Groups.findById(groupId);
         if (!group) {
             return res.status(404).json({ message: 'Group not found' });
         }
+
+        const userObjectId = new mongoose.Types.ObjectId(userId); 
+
         if (status === 'approved') {
-            const userGroupRecord = await userGroup.findOne({ user_id: userId, group_id: groupId });
+            const memberExists = group.members.some(member =>
+                member.user_id.toString() === userObjectId.toString()
+            );
+
+            if (!memberExists) {
+                group.members.push({ user_id: userObjectId });
+                group.updated_at = Date.now();
+                await group.save();
+                console.log(`User ${userId} added to group ${groupId}`);
+            }
+
+            let userGroupRecord = await userGroup.findOne({ user_id: userId, group_id: groupId });
             if (!userGroupRecord) {
-                const newUserGroup = new userGroup({
+                userGroupRecord = new userGroup({
                     user_id: userId,
                     group_id: groupId,
                     status: 'active',
                     startDate: joinRequest.startDate,
                     endDate: joinRequest.endDate,
                 });
-
-                await newUserGroup.save();
-                console.log("New user group added:", newUserGroup);
-                if (!Array.isArray(group.members)) {
-                    group.members = [];
-                }
-
-                const userObjectId = mongoose.Types.ObjectId(userId);
-                const memberExists = group.members.some(member =>
-                    member.user_id && member.user_id.toString() === userObjectId.toString()
-                );
-
-                if (!memberExists) {
-                    group.members.push({ user_id: userObjectId });
-                    group.updated_at = Date.now();
-                    await group.save();
-                    console.log("User added to group:", userId);
-                } else {
-                    console.log("User already a member of the group.");
-                }
+                await userGroupRecord.save();
+                console.log(`User group record created:`, userGroupRecord);
             } else if (userGroupRecord.status !== 'active') {
                 userGroupRecord.status = 'active';
                 await userGroupRecord.save();
+                console.log(`User group status updated to active.`);
             }
-        } else {
+        } else if (status === 'rejected') {
+            group.members = group.members.filter(member => 
+                member.user_id && !member.user_id.equals(userObjectId) 
+            );
+            
+            group.updated_at = Date.now();
+            await group.save();
+            console.log(`User ${userId} removed from group ${groupId}`);
             const userGroupRecord = await userGroup.findOne({ user_id: userId, group_id: groupId });
             if (userGroupRecord) {
                 userGroupRecord.status = 'inactive';
                 await userGroupRecord.save();
+                console.log(`User group status updated to inactive.`);
             }
-            group.members = group.members.filter(member =>
-                member.user_id && member.user_id.toString() !== userId.toString()
-            );
-
-            group.updated_at = Date.now();
-            await group.save();
         }
 
         return res.status(200).json({

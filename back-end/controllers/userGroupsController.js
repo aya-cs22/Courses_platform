@@ -21,22 +21,19 @@ exports.getUserGroups = async (req, res) => {
     }
 };
 
-
 exports.leaveGroup = async (req, res) => {
     try {
         const { groupId } = req.body;
         const userId = req.user.id;
-
         const userGroup = await UserGroup.findOneAndDelete({ user_id: userId, group_id: groupId });
         if (!userGroup) {
             return res.status(404).json({ message: 'You are not an active member of this group' });
         }
-
         const joinRequest = await JoinRequests.findOneAndDelete({ user_id: userId, group_id: groupId });
 
         const result = await Groups.updateOne(
-            { _id: mongoose.Types.ObjectId(groupId) },
-            { $pull: { members: mongoose.Types.ObjectId(userId) } }
+            { _id: groupId },
+            { $pull: { members: { user_id: userId } } }
         );
 
         if (result.nModified === 0) {
@@ -53,9 +50,6 @@ exports.leaveGroup = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
-
-
-
 
 exports.getGroupMembers = async (req, res) => {
     try {
@@ -79,7 +73,6 @@ exports.getGroupMembers = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
-
 
 exports.getActiveGroup = async (req, res) => {
     try {
