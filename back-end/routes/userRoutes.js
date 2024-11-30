@@ -19,7 +19,7 @@ router.post('/adduser', authMiddleware, userController.addUser);
 router.get('/', authMiddleware, userController.getUser);
 router.get('/:id', authMiddleware, userController.getUserByid);
 router.get('/', authMiddleware, userController.getAllUsers);
-router.put('/:id', authMiddleware, userController.updateUser);
-router.delete('/:id', authMiddleware, userController.deleteUser);
+router.put('/:id?', authMiddleware, userController.updateUser);
+router.delete('/:id?', authMiddleware, userController.deleteUser);
 
 module.exports = router; 

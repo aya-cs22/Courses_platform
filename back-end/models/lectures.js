@@ -4,8 +4,28 @@ const taskSchema = new mongoose.Schema({
   description_task: String,
   start_date: Date,
   end_date: Date,
-  submittedOnTime: { type: Boolean, default: false },
-  score: { type: Number, default: 0 }
+
+  submissions: [ 
+    {
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+      },
+      submissionLink: {
+        type: String,
+        required: true,
+      },
+      submittedAt: {
+        type: Date,
+        default: Date.now
+      },
+      score: {
+        type: Number,
+        default: null
+      }
+    }
+  ]
 });
 // creat schema for groups
 const lecturesSchema = new mongoose.Schema({
@@ -20,25 +40,6 @@ const lecturesSchema = new mongoose.Schema({
     ref: 'Users',
     default: []
   },
-  submittedOnTime: {
-    type: Boolean,
-    default: false
-  },
-  submissions: [{ 
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    submissionLink: String,
-    submittedOnTime: Boolean,
-    submittedAt: Date,
-    evaluation: {
-      score: Number,
-      feedback: String,
-      evaluatedAt: Date,
-    },
-  }],
   title:{
     type: String,
     required: true
@@ -59,7 +60,7 @@ const lecturesSchema = new mongoose.Schema({
   },
   attendees: {
     type: [mongoose.Schema.Types.ObjectId],
-    ref: 'Users',
+    ref: 'User',
     default: []
   },
   attendanceCount: {

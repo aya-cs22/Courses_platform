@@ -1,10 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const userSchema = new mongoose.Schema({
-  group_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Groups',
-  },
+  
   name: {
     type: String,
     required: true
@@ -40,9 +37,9 @@ const userSchema = new mongoose.Schema({
       return this.email === process.env.ADMIN_EMAIL ? 'admin' : 'user';
     }
   },
-  // date_group: {
-  //   type: Date,
-  // },
+  date_group: {
+    type: Date,
+  },
 
   feedback : {
     type:String,
@@ -64,6 +61,37 @@ const userSchema = new mongoose.Schema({
     default: null
   },
 
+  attendance: [
+    {
+      lectureId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Lectures',
+        required: true
+      },
+      attended: {
+        type: Boolean,
+        default: false
+      },
+      attendedAt: {
+        type: Date,
+        default: null
+      }
+    }
+  ],
+  tasks: [
+    {
+      lectureId: mongoose.Schema.Types.ObjectId,
+      taskId: mongoose.Schema.Types.ObjectId,
+      submissionLink: String,
+      submittedOnTime: Boolean,
+      submittedAt: Date,
+      score: Number,
+    },
+  ],
+  
+
+  
+
   created_at: {
     type: Date,
     default: Date.now,
@@ -72,6 +100,7 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+
 });
 
 // Before saving the user

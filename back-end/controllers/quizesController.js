@@ -28,6 +28,7 @@ exports.getAllQuizzes = async (req, res) => {
     res.status(500).json('Server error');
   }
 };
+
 // Get a quiz by its ID
 exports.getQuizById = async (req, res) => {
     try {

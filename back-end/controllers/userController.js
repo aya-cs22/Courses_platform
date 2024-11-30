@@ -187,6 +187,7 @@ exports.forgotPassword = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
 exports.resetPassword = async (req, res) => {
     try {
         const { resetCode, newPassword } = req.body;
@@ -210,7 +211,6 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
-
 
 // exports.updatePassword = async (req, res) => {
 //     const { id } = req.params;
@@ -284,7 +284,7 @@ exports.addUser = async (req, res) => {
             return res.status(403).json({ message: 'Access denied. Admins only.' });
         }
 
-        const { name, email, password, phone_number, role, group_id, date_group } = req.body;
+        const { name, email, password, phone_number, role } = req.body;
         if (!name || !email || !password || !phone_number || !role) {
 
             return res.status(400).json({ message: 'All fields are required' });
@@ -297,18 +297,13 @@ exports.addUser = async (req, res) => {
         }
 
         const newUser = new User({
-            group_id ,
             name,
             email,
             password,
             phone_number,
             role,
-            date_group,
             isVerified: true,
         });
-    if (group_id ) {
-        newUser.group_id = group_id;
-    }
 
     await newUser.save();
     res.status(201).json({ message: 'User added successfully', user: newUser });
@@ -368,7 +363,7 @@ exports.getUserByid = async (req, res) => {
     }
 };
 
-
+// get all user
 exports.getAllUsers = async (req, res) => {
     try {
         if (req.user.role !== 'admin' && req.user.role !== 'assistant') {
@@ -383,23 +378,19 @@ exports.getAllUsers = async (req, res) => {
     }
 };
 
-
-
+// update user by admin => role and user can edit all data expect role
 exports.updateUser = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { name, email, password, role, group_id } = req.body;
+        const { name, email, password, role, phone_number } = req.body;
         const updates = {};
 
-        if (req.user.id !== id && req.user.role !== 'admin') {
-            return res.status(403).json({ message: 'Access denied' });
-        }
-
-        if (req.user.id === id) {
+        const userIdFromToken = req.user.id; 
+        const userIdFromParams = req.params.id;
+        if (!userIdFromParams || userIdFromToken === userIdFromParams) {
             if (name) updates.name = name;
             if (email) {
                 const existingUser = await User.findOne({ email });
-                if (existingUser && existingUser.id !== id) {
+                if (existingUser && existingUser.id !== userIdFromToken) {
                     return res.status(400).json({ message: 'Email already exists' });
                 } else {
                     updates.email = email;
@@ -411,25 +402,22 @@ exports.updateUser = async (req, res) => {
                 updates.password = await bcrypt.hash(password, salt);
             }
 
-            if (role) {
-                return res.status(403).json({ message: 'You cannot change your role' });
+            if (phone_number) {
+                const existingUserWithPhone = await User.findOne({ phone_number });
+                if (existingUserWithPhone && existingUserWithPhone.id !== userIdFromToken) {
+                    return res.status(400).json({ message: 'Phone number already exists' });
+                } else {
+                    updates.phone_number = phone_number;
+                }
             }
-            if (group_id) {
-                return res.status(403).json({ message: 'You cannot change your Group' });
-            }
+
+        } else if (req.user.role === 'admin' && userIdFromParams) {
+            if (role) updates.role = role; 
+        } else {
+            return res.status(403).json({ message: 'Access denied' });
         }
 
-        if (req.user.role === 'admin') {
-            if (role) updates.role = role;
-            if(group_id) updates.group_id = group_id;
-
-            if (password) {
-                const salt = await bcrypt.genSalt(10);
-                updates.password = await bcrypt.hash(password, salt);
-            }
-        }
-
-        const user = await User.findByIdAndUpdate(id, updates, { new: true });
+        const user = await User.findByIdAndUpdate(userIdFromParams || userIdFromToken, updates, { new: true });
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -441,25 +429,34 @@ exports.updateUser = async (req, res) => {
     }
 };
 
-
+//delet user by admin and himself
 exports.deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
-        if (req.user.id !== id && req.user.role !== 'admin') {
-            return res.status(403).json({ message: 'Access denied' });
-        }
-        const user = await User.findByIdAndDelete(id);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
+        const userIdFromToken = req.user.id; 
 
-        res.status(200).json({ message: 'User successfully deleted' });
+        if (req.user.role !== 'admin' && !id) {
+            const user = await User.findByIdAndDelete(userIdFromToken);
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+            return res.status(200).json({ message: 'Your account has been successfully deleted' });
+        }
+        if (req.user.role === 'admin' && id) {
+            const user = await User.findByIdAndDelete(id);  
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+            return res.status(200).json({ message: 'User successfully deleted' });
+        }
+        return res.status(400).json({ message: 'Invalid request' });
+        
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 };
-
 
 //the user send your feedback
 exports.submitFeedback = async (req, res) => {
@@ -501,7 +498,6 @@ exports.getAllFeedback = async (req, res) => {
       res.status(500).json({ message: 'Server error', error: error.message });
     }
   };
-
 
   // Get feedback by user ID
 exports.getFeedbackById = async (req, res) => {

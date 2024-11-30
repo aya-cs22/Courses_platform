@@ -6,7 +6,7 @@ const authMiddleware = require('../middleware/authenticate')
 router.post('/', authMiddleware, groupsController.creatGroups);
 router.post('/send-group-id', authMiddleware, groupsController.sendGroupId);
 router.get('/', groupsController.getAllGroups);
-router.get('/:id', groupsController.getGroupsById);
+// router.get('/:id', groupsController.getGroupsById);
 
 router.put('/:id', authMiddleware, groupsController.updateGroupsById);
 router.delete('/:id', authMiddleware, groupsController.deleteGroupsById);

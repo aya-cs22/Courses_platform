@@ -31,21 +31,25 @@ exports.getAllGroups = async (req, res) => {
     }
 };
 
-// get groups by id
-exports.getGroupsById = async (req, res) => {
-    try {
-        const groups = await Groups.findById(req.params.id).populate('type_course');
-        if (!groups) {
-            return res.status(404).json({ message: 'groups not found' });
-        }
-        return res.status(200).json(groups);
-    } catch (error) {
-        console.error('Error  fetching group');
-        res.status(500).json({ message: 'server error' });
-    }
-};
 
-// update course by id
+// get groups by id
+// exports.getGroupsById = async (req, res) => {
+//     try {
+//         const groups = await Groups.findById(req.params.id).populate('type_course');
+//         if (!groups) {
+//             return res.status(404).json({ message: 'groups not found' });
+//         }
+//         return res.status(200).json(groups);
+//     } catch (error) {
+//         console.error('Error  fetching group');
+//         res.status(500).json({ message: 'server error' });
+//     }
+// };
+
+
+
+
+// update group by id
 exports.updateGroupsById = async (req, res) => {
     try {
         const { id } = req.params;

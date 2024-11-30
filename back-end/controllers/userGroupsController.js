@@ -3,6 +3,7 @@ const Groups = require('../models/groups');
 const JoinRequests = require('../models/JoinRequests');
 const moment = require('moment');
 const { use } = require('../config/mailConfig');
+const mongoose = require('mongoose');
 
 exports.getUserGroups = async (req, res) => {
     try {
@@ -20,38 +21,40 @@ exports.getUserGroups = async (req, res) => {
     }
 };
 
+
 exports.leaveGroup = async (req, res) => {
     try {
         const { groupId } = req.body;
         const userId = req.user.id;
 
-        const userGroup = await UserGroup.findOne({ user_id: userId, group_id: groupId });
-        if (!userGroup || userGroup.status !== 'active') {
+        const userGroup = await UserGroup.findOneAndDelete({ user_id: userId, group_id: groupId });
+        if (!userGroup) {
             return res.status(404).json({ message: 'You are not an active member of this group' });
         }
 
-        userGroup.status = 'inactive';
-        await userGroup.save();
+        const joinRequest = await JoinRequests.findOneAndDelete({ user_id: userId, group_id: groupId });
 
-        const joinRequest = await JoinRequests.findOne({ user_id: userId, group_id: groupId });
-        if (joinRequest) {
-            joinRequest.status = 'rejected';
-            joinRequest.updated_at = Date.now();
-            await joinRequest.save();
-        } else {
-            console.warn('JoinRequest record not found for user leaving the group.');
+        const result = await Groups.updateOne(
+            { _id: mongoose.Types.ObjectId(groupId) },
+            { $pull: { members: mongoose.Types.ObjectId(userId) } }
+        );
+
+        if (result.nModified === 0) {
+            console.warn('User was not found in the group members array.');
         }
 
-        res.status(200).json({ 
-            message: 'Successfully left the group. Join request status updated to rejected.', 
-            userGroup, 
-            joinRequest 
+        res.status(200).json({
+            message: 'Successfully left the group. Member removed, userGroup deleted, and join request deleted.',
+            userGroup,
+            joinRequest
         });
     } catch (error) {
         console.error('Error leaving group:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+
 
 
 exports.getGroupMembers = async (req, res) => {
