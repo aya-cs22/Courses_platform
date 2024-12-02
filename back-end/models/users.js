@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const userSchema = new mongoose.Schema({
-  
+
   name: {
     type: String,
     required: true
@@ -37,12 +37,17 @@ const userSchema = new mongoose.Schema({
       return this.email === process.env.ADMIN_EMAIL ? 'admin' : 'user';
     }
   },
+
+  groupId: [{
+    group_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Groups' }
+  }],
+
   date_group: {
     type: Date,
   },
 
-  feedback : {
-    type:String,
+  feedback: {
+    type: String,
   },
   emailVerificationCode: { // Email verification code, set when a verification code is sent to the user
     type: String,
@@ -88,9 +93,9 @@ const userSchema = new mongoose.Schema({
       score: Number,
     },
   ],
-  
 
-  
+
+
 
   created_at: {
     type: Date,

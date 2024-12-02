@@ -90,7 +90,7 @@ exports.getLectureAttendees = async (req, res) => {
     }
 
     const lecture = await Lectures.findById(lectureId)
-      .populate('attendees', 'name email'); 
+      .populate('attendees', 'name email');
 
     if (!lecture) {
       return res.status(404).json({ error: 'Lecture not found.' });
@@ -209,15 +209,12 @@ exports.getTasksByLectureId = async (req, res) => {
   try {
     const { lectureId } = req.params;
 
-    // Find the lecture by its ID and populate the tasks field if necessary
     const lecture = await Lectures.findById(lectureId).populate('tasks');
 
-    // Check if the lecture exists
     if (!lecture) {
       return res.status(404).json({ message: 'Lecture not found' });
     }
 
-    // Return the tasks associated with the lecture
     res.status(200).json({ tasks: lecture.tasks });
   } catch (error) {
     console.error(error);
@@ -231,7 +228,7 @@ exports.submitTask = async (req, res) => {
   try {
     const { submissionLink } = req.body;
     const { lectureId, taskId } = req.params;
-    const userId = req.user.id;  
+    const userId = req.user.id;
 
     if (!submissionLink) {
       return res.status(400).json({ error: 'Submission link is required' });
@@ -253,7 +250,7 @@ exports.submitTask = async (req, res) => {
       userId,
       submissionLink,
       submittedAt: Date.now(),
-      submittedOnTime: true,  
+      submittedOnTime: true,
     });
 
     if (!lecture.submittedBy.includes(userId)) {
@@ -274,7 +271,7 @@ exports.submitTask = async (req, res) => {
       submissionLink,
       submittedOnTime: true,
       submittedAt: Date.now(),
-      score: null, 
+      score: null,
     };
 
     user.tasks.push(taskSubmission);
@@ -360,8 +357,8 @@ exports.getLectureWithTasksAndUsers = async (req, res) => {
     const { lectureId } = req.params;
 
     const lecture = await Lectures.findById(lectureId)
-      .populate('submittedBy', 'name email') 
-      .populate('attendees', 'name email');  
+      .populate('submittedBy', 'name email')
+      .populate('attendees', 'name email');
 
     if (!lecture) {
       return res.status(404).json({ error: 'Lecture not found' });
@@ -378,7 +375,7 @@ exports.getLectureWithTasksAndUsers = async (req, res) => {
         end_date: task.end_date,
         submissionLink: task.submissionLink
       })),
-      submittedBy: lecture.submittedBy, 
+      submittedBy: lecture.submittedBy,
       attendees: lecture.attendees,
       attendanceCount: lecture.attendanceCount
     });

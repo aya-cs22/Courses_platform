@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/users');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
+const mongoose = require('mongoose');
 
 const EMAIL_VERIFICATION_TIMEOUT = 60 * 60 * 1000; // 1 hours
 
@@ -46,6 +47,7 @@ exports.register = async (req, res) => {
             phone_number,
             password,
             isVerified: false,
+            groupId: [],
             emailVerificationCode: generateVerificationCode(),
             verificationCodeExpiry: new Date(Date.now() + EMAIL_VERIFICATION_TIMEOUT)
         });
@@ -278,6 +280,7 @@ exports.login = async (req, res) => {
     }
 };
 
+
 exports.addUser = async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
@@ -305,18 +308,37 @@ exports.addUser = async (req, res) => {
             isVerified: true,
         });
 
-    await newUser.save();
-    res.status(201).json({ message: 'User added successfully', user: newUser });
-} catch (error) {
-    console.error('Error adding user: ', error);
-    res.status(500).json({ message: 'Server error' });
-}
+        await newUser.save();
+        res.status(201).json({ message: 'User added successfully', user: newUser });
+    } catch (error) {
+        console.error('Error adding user: ', error);
+        res.status(500).json({ message: 'Server error' });
+    }
 };
 
 // get user by token
 exports.getUser = async (req, res) => {
     try {
-        const userIdFromToken = req.user.id; 
+        const userIdFromToken = req.user.id;
+        const user = await User.findById(userIdFromToken);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        const userResponse = { ...user._doc, password: undefined };
+
+        res.status(200).json(userResponse);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
+
+// get user by token
+exports.getUser = async (req, res) => {
+    try {
+        const userIdFromToken = req.user.id;
         const user = await User.findById(userIdFromToken);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -384,7 +406,7 @@ exports.updateUser = async (req, res) => {
         const { name, email, password, role, phone_number } = req.body;
         const updates = {};
 
-        const userIdFromToken = req.user.id; 
+        const userIdFromToken = req.user.id;
         const userIdFromParams = req.params.id;
         if (!userIdFromParams || userIdFromToken === userIdFromParams) {
             if (name) updates.name = name;
@@ -412,7 +434,7 @@ exports.updateUser = async (req, res) => {
             }
 
         } else if (req.user.role === 'admin' && userIdFromParams) {
-            if (role) updates.role = role; 
+            if (role) updates.role = role;
         } else {
             return res.status(403).json({ message: 'Access denied' });
         }
@@ -433,7 +455,7 @@ exports.updateUser = async (req, res) => {
 exports.deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const userIdFromToken = req.user.id; 
+        const userIdFromToken = req.user.id;
 
         if (req.user.role !== 'admin' && !id) {
             const user = await User.findByIdAndDelete(userIdFromToken);
@@ -443,7 +465,7 @@ exports.deleteUser = async (req, res) => {
             return res.status(200).json({ message: 'Your account has been successfully deleted' });
         }
         if (req.user.role === 'admin' && id) {
-            const user = await User.findByIdAndDelete(id);  
+            const user = await User.findByIdAndDelete(id);
             if (!user) {
                 return res.status(404).json({ message: 'User not found' });
             }
@@ -451,7 +473,7 @@ exports.deleteUser = async (req, res) => {
             return res.status(200).json({ message: 'User successfully deleted' });
         }
         return res.status(400).json({ message: 'Invalid request' });
-        
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
@@ -461,62 +483,62 @@ exports.deleteUser = async (req, res) => {
 //the user send your feedback
 exports.submitFeedback = async (req, res) => {
     const { email, feedback } = req.body;
-  
+
     if (!email || !feedback) {
-      return res.status(400).json({ message: 'Email and feedback are required' });
+        return res.status(400).json({ message: 'Email and feedback are required' });
     }
-  
+
     try {
-      const user = await User.findOne({ email });
-  
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-  
-      user.feedback = feedback;
-      await user.save();
-  
-      res.status(200).json({ message: 'Feedback submitted successfully' });
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        user.feedback = feedback;
+        await user.save();
+
+        res.status(200).json({ message: 'Feedback submitted successfully' });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error', error: error.message });
+        console.error(error);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
-  };
+};
 
 exports.getAllFeedback = async (req, res) => {
     try {
-      const users = await User.find({ feedback: { $exists: true, $ne: null } });
-      if (users.length === 0) {
-        return res.status(404).json({ message: 'No feedback found' });
-      }
-  
-      const feedbacks = users.map(user => ({ email: user.email, feedback: user.feedback }));
-  
-      res.status(200).json({ feedbacks });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error', error: error.message });
-    }
-  };
+        const users = await User.find({ feedback: { $exists: true, $ne: null } });
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'No feedback found' });
+        }
 
-  // Get feedback by user ID
+        const feedbacks = users.map(user => ({ email: user.email, feedback: user.feedback }));
+
+        res.status(200).json({ feedbacks });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// Get feedback by user ID
 exports.getFeedbackById = async (req, res) => {
     const { userId } = req.params;
-  
+
     try {
-      const user = await User.findById(userId);
-    
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-  
-      if (!user.feedback) {
-        return res.status(404).json({ message: 'No feedback available for this user' });
-      }
-  
-      res.status(200).json({ email: user.email, feedback: user.feedback });
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (!user.feedback) {
+            return res.status(404).json({ message: 'No feedback available for this user' });
+        }
+
+        res.status(200).json({ email: user.email, feedback: user.feedback });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error', error: error.message });
+        console.error(error);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
-  };
+};

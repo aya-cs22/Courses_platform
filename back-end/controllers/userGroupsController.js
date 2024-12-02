@@ -4,12 +4,13 @@ const JoinRequests = require('../models/JoinRequests');
 const moment = require('moment');
 const { use } = require('../config/mailConfig');
 const mongoose = require('mongoose');
+const User = require('../models/users');
 
 exports.getUserGroups = async (req, res) => {
     try {
         const userId = req.user.id;
         const userGroups = await UserGroup.find({ user_id: userId, status: 'active' }).populate('group_id');
-        
+
         if (!userGroups.length) {
             return res.status(404).json({ message: 'You are not a member of any groups' });
         }
@@ -25,10 +26,12 @@ exports.leaveGroup = async (req, res) => {
     try {
         const { groupId } = req.body;
         const userId = req.user.id;
+
         const userGroup = await UserGroup.findOneAndDelete({ user_id: userId, group_id: groupId });
         if (!userGroup) {
             return res.status(404).json({ message: 'You are not an active member of this group' });
         }
+
         const joinRequest = await JoinRequests.findOneAndDelete({ user_id: userId, group_id: groupId });
 
         const result = await Groups.updateOne(
@@ -38,6 +41,12 @@ exports.leaveGroup = async (req, res) => {
 
         if (result.nModified === 0) {
             console.warn('User was not found in the group members array.');
+        }
+
+        const user = await User.findById(userId);
+        if (user) {
+            user.groupId = user.groupId.filter(groupItem => groupItem.group_id.toString() !== groupId.toString());
+            await user.save();
         }
 
         res.status(200).json({
@@ -51,6 +60,7 @@ exports.leaveGroup = async (req, res) => {
     }
 };
 
+
 exports.getGroupMembers = async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
@@ -60,7 +70,7 @@ exports.getGroupMembers = async (req, res) => {
 
         const group = await Groups.findById(groupId).populate({
             path: 'members',
-            match: { 'status': 'active' }, 
+            match: { 'status': 'active' },
         });
 
         if (!group) {
@@ -85,7 +95,7 @@ exports.getActiveGroup = async (req, res) => {
 
         if (userGroup.endDate && moment(userGroup.endDate).isBefore(moment())) {
             userGroup.status = 'inactive';
-            await userGroup.save(); 
+            await userGroup.save();
             return res.status(403).json({ message: 'Membership has expired and the status has been updated to inactive' });
         }
         const groupDetails = await Groups.findById(userGroup.group_id);
@@ -94,9 +104,9 @@ exports.getActiveGroup = async (req, res) => {
             return res.status(404).json({ message: 'Group details not found' });
         }
 
-        res.status(200).json({ 
-            message: 'Active group details retrieved successfully', 
-            groupDetails 
+        res.status(200).json({
+            message: 'Active group details retrieved successfully',
+            groupDetails
         });
     } catch (error) {
         console.error('Error fetching active user group details:', error);

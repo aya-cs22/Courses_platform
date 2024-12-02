@@ -24,10 +24,12 @@ const groupsSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  
+
   members: [{
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
   }],
+
+
   created_at: {
     type: Date,
     default: Date.now,

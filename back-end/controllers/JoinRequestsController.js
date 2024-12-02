@@ -24,7 +24,7 @@ exports.sendJoinRequest = async (req, res) => {
 
         const user = await User.findById(userId);
         if (!user) {
-            console.error('User not found with ID:', userId);  
+            console.error('User not found with ID:', userId);
             return res.status(404).json({ message: 'User not found' });
         }
 
@@ -48,16 +48,14 @@ exports.sendJoinRequest = async (req, res) => {
             });
             await userGroupRecord.save();
         } else {
-            // If the userGroup exists, just update the status to 'inactive'
             userGroupRecord.status = 'inactive';
             await userGroupRecord.save();
         }
 
-        // Send email to admin
         const adminEmail = process.env.ADMIN_EMAIL;
         const mailOptions = {
             from: user.email,
-            to: adminEmail, 
+            to: adminEmail,
             subject: 'New Join Request',
             html: `
             <p>Hello Admin,</p>
@@ -85,7 +83,7 @@ exports.sendJoinRequest = async (req, res) => {
                 </form>
             </div>
         `,
-    };
+        };
 
         transporter.sendMail(mailOptions, (error, data) => {
             if (error) {
@@ -105,18 +103,18 @@ exports.sendJoinRequest = async (req, res) => {
 
 
 // Show all join requests only pending
-exports.getAllJoinRequests = async(req, res) => {
-    try{
+exports.getAllJoinRequests = async (req, res) => {
+    try {
         if (req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
-    
+
         const pendingJoinRequests = await JoinRequests.find({ status: 'pending' }).populate('user_id group_id');
         if (pendingJoinRequests.length === 0) {
             return res.status(404).json({ message: 'There are no join requests currently in "pending" status' });
         }
         res.status(200).json(pendingJoinRequests);
-    } catch(error){
+    } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
@@ -131,7 +129,7 @@ exports.approveJoinRequest = async (req, res) => {
         }
 
         const { requestId, startDate, endDate, lifetimeAccess } = req.body;
-        
+
         const joinRequest = await JoinRequests.findById(requestId);
         if (!joinRequest) {
             return res.status(404).json({ message: 'Join request not found' });
@@ -141,22 +139,18 @@ exports.approveJoinRequest = async (req, res) => {
             return res.status(400).json({ message: 'Request is already processed' });
         }
 
-        // Find the group
         const group = await Groups.findById(joinRequest.group_id);
         if (!group) {
             return res.status(404).json({ message: 'Group not found' });
         }
 
-        // Validate the dates if lifetimeAccess is false
         const momentStartDate = moment(startDate);
-
         if (!momentStartDate.isValid()) {
             return res.status(400).json({ message: 'Invalid start date' });
         }
 
         if (!lifetimeAccess) {
             const momentEndDate = moment(endDate);
-
             if (!momentEndDate.isValid()) {
                 return res.status(400).json({ message: 'Invalid end date' });
             }
@@ -167,7 +161,7 @@ exports.approveJoinRequest = async (req, res) => {
 
             joinRequest.endDate = momentEndDate.toDate();
         } else {
-            joinRequest.endDate = null; // No end date for lifetime access
+            joinRequest.endDate = null;
         }
 
         joinRequest.status = 'approved';
@@ -178,6 +172,16 @@ exports.approveJoinRequest = async (req, res) => {
         if (!group.members.some(member => member.toString() === joinRequest.user_id.toString())) {
             group.members.push(joinRequest.user_id);
             await group.save();
+        }
+
+        const user = await User.findById(joinRequest.user_id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (!user.groupId.some(groupItem => groupItem.group_id.toString() === group._id.toString())) {
+            user.groupId.push({ group_id: group._id });
+            await user.save();
         }
 
         const userGroupRecord = await userGroup.findOne({
@@ -195,11 +199,6 @@ exports.approveJoinRequest = async (req, res) => {
                 status: 'active',
             });
             await newUserGroupRecord.save();
-        }
-
-        const user = await User.findById(joinRequest.user_id);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
         }
 
         const adminEmail = process.env.ADMIN_EMAIL;
@@ -231,6 +230,7 @@ Your App Team`
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
 
 
 // Reject the join request and remove from userGroup
@@ -283,6 +283,7 @@ exports.rejectJoinRequest = async (req, res) => {
 };
 
 
+
 // Delete the join request, related userGroup, and remove user from group members
 exports.deleteJoinRequest = async (req, res) => {
     try {
@@ -313,6 +314,7 @@ exports.deleteJoinRequest = async (req, res) => {
 
 
 
+
 exports.updateJoinRequestStatus = async (req, res) => {
     const { userId, groupId, status, startDate, endDate } = req.body;
 
@@ -329,7 +331,6 @@ exports.updateJoinRequestStatus = async (req, res) => {
         if (!['pending', 'approved', 'rejected'].includes(status)) {
             return res.status(400).json({ message: 'Invalid status' });
         }
-
         if (startDate || endDate) {
             const momentStartDate = moment(startDate, 'YYYY-MM-DD', true);
             const momentEndDate = moment(endDate, 'YYYY-MM-DD', true);
@@ -355,7 +356,7 @@ exports.updateJoinRequestStatus = async (req, res) => {
             return res.status(404).json({ message: 'Group not found' });
         }
 
-        const userObjectId = new mongoose.Types.ObjectId(userId); 
+        const userObjectId = new mongoose.Types.ObjectId(userId);
 
         if (status === 'approved') {
             const memberExists = group.members.some(member =>
@@ -380,24 +381,41 @@ exports.updateJoinRequestStatus = async (req, res) => {
                 });
                 await userGroupRecord.save();
                 console.log(`User group record created:`, userGroupRecord);
+
+                const user = await User.findById(userId);
+                if (user && !user.groupId.some(groupItem => groupItem.group_id.toString() === groupId.toString())) {
+                    user.groupId.push({ group_id: groupId });
+                    await user.save();
+                }
             } else if (userGroupRecord.status !== 'active') {
                 userGroupRecord.status = 'active';
                 await userGroupRecord.save();
                 console.log(`User group status updated to active.`);
+                const user = await User.findById(userId);
+                if (user && !user.groupId.some(groupItem => groupItem.group_id.toString() === groupId.toString())) {
+                    user.groupId.push({ group_id: groupId });
+                    await user.save();
+                }
             }
         } else if (status === 'rejected') {
-            group.members = group.members.filter(member => 
-                member.user_id && !member.user_id.equals(userObjectId) 
+            group.members = group.members.filter(member =>
+                member.user_id && !member.user_id.equals(userObjectId)
             );
-            
+
             group.updated_at = Date.now();
             await group.save();
             console.log(`User ${userId} removed from group ${groupId}`);
+
             const userGroupRecord = await userGroup.findOne({ user_id: userId, group_id: groupId });
             if (userGroupRecord) {
                 userGroupRecord.status = 'inactive';
                 await userGroupRecord.save();
                 console.log(`User group status updated to inactive.`);
+                const user = await User.findById(userId);
+                if (user) {
+                    user.groupId = user.groupId.filter(groupItem => groupItem.group_id.toString() !== groupId.toString());
+                    await user.save();
+                }
             }
         }
 
