@@ -314,7 +314,6 @@ exports.deleteJoinRequest = async (req, res) => {
 
 
 
-
 exports.updateJoinRequestStatus = async (req, res) => {
     const { userId, groupId, status, startDate, endDate } = req.body;
 
