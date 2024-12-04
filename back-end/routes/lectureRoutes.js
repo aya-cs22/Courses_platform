@@ -18,7 +18,8 @@ router.put('/:id', authMiddleware, lecturesController.updateLecturesById);
 router.delete('/:id', authMiddleware, lecturesController.deleteLecturesById);
 router.post('/:lectureId/createtasks', authMiddleware, lecturesController.createTask);
 router.get('/:lectureId/tasks', lecturesController.getTasksByLectureId);
-router.get('/:lectureId', lecturesController.getLectureWithTasksAndUsers);
+//get Lecture WithTasks AndUsers
+router.get('/:lectureId', authMiddleware, lecturesController.getLectureWithTasksAndUsers);
 
 
 // Submit task
@@ -27,5 +28,7 @@ router.post('/:lectureId/tasks/:taskId/submit', authMiddleware, lecturesControll
 
 // score for task
 router.put('/evaluate/:lectureId/:taskId', lecturesController.evaluateTask);
+
+
 
 module.exports = router;

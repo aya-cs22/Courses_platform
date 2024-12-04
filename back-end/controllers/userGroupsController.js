@@ -22,43 +22,54 @@ exports.getUserGroups = async (req, res) => {
     }
 };
 
+
+
 exports.leaveGroup = async (req, res) => {
     try {
         const { groupId } = req.body;
         const userId = req.user.id;
 
-        const userGroup = await UserGroup.findOneAndDelete({ user_id: userId, group_id: groupId });
-        if (!userGroup) {
-            return res.status(404).json({ message: 'You are not an active member of this group' });
+        if (!groupId || !userId) {
+            return res.status(400).json({ message: 'Group ID or User ID is missing' });
+        }
+        const group = await Groups.findById(groupId);
+        if (!group) {
+            return res.status(404).json({ message: 'Group not found' });
+        }
+        const userInGroup = group.members.some(member => {
+            return member._id.toString() === userId.toString();
+        });
+
+        if (!userInGroup) {
+            return res.status(404).json({ message: 'User not found in group members' });
         }
 
-        const joinRequest = await JoinRequests.findOneAndDelete({ user_id: userId, group_id: groupId });
-
-        const result = await Groups.updateOne(
+        await Groups.updateOne(
             { _id: groupId },
-            { $pull: { members: { user_id: userId } } }
+            { $pull: { members: { _id: new mongoose.Types.ObjectId(userId) } } }
         );
 
-        if (result.nModified === 0) {
-            console.warn('User was not found in the group members array.');
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        const user = await User.findById(userId);
-        if (user) {
-            user.groupId = user.groupId.filter(groupItem => groupItem.group_id.toString() !== groupId.toString());
-            await user.save();
-        }
+        user.groupId = user.groupId.filter(group => group.group_id.toString() !== groupId.toString());
+        await user.save();
+
+        await JoinRequests.deleteOne({ user_id: userId, group_id: groupId });
+
+        await UserGroup.deleteOne({ user_id: userId, group_id: groupId });
 
         res.status(200).json({
-            message: 'Successfully left the group. Member removed, userGroup deleted, and join request deleted.',
-            userGroup,
-            joinRequest
+            message: 'Successfully left the group, removed from members, and deleted related records.',
         });
     } catch (error) {
         console.error('Error leaving group:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
 
 
 exports.getGroupMembers = async (req, res) => {
@@ -84,11 +95,24 @@ exports.getGroupMembers = async (req, res) => {
     }
 };
 
+
+
 exports.getActiveGroup = async (req, res) => {
     try {
         const userId = req.user.id;
-        const userGroup = await UserGroup.findOne({ user_id: userId, status: 'active' });
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
 
+        if (user.role === 'admin') {
+            const activeGroups = await UserGroup.find({ status: 'active' }).populate('group_id');
+            return res.status(200).json({
+                message: 'All active groups retrieved successfully',
+                activeGroups
+            });
+        }
+        const userGroup = await UserGroup.findOne({ user_id: userId, status: 'active' });
         if (!userGroup) {
             return res.status(404).json({ message: 'User is not an active member of any group' });
         }
@@ -98,8 +122,8 @@ exports.getActiveGroup = async (req, res) => {
             await userGroup.save();
             return res.status(403).json({ message: 'Membership has expired and the status has been updated to inactive' });
         }
-        const groupDetails = await Groups.findById(userGroup.group_id);
 
+        const groupDetails = await Groups.findById(userGroup.group_id);
         if (!groupDetails) {
             return res.status(404).json({ message: 'Group details not found' });
         }

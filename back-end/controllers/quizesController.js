@@ -31,18 +31,18 @@ exports.getAllQuizzes = async (req, res) => {
 
 // Get a quiz by its ID
 exports.getQuizById = async (req, res) => {
-    try {
-      const quiz = await Quiz.findById(req.params.id);
-      if (!quiz) {
-        return res.status(404).json({ message: 'Quiz not found' });
-      }
-      res.status(200).json(quiz);
-    } catch (error) {
-      console.error('Error fetching quiz by ID:', error);
-      res.status(500).json({ message: 'Server error' });
+  try {
+    const quiz = await Quiz.findById(req.params.id);
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz not found' });
     }
-  };
-  
+    res.status(200).json(quiz);
+  } catch (error) {
+    console.error('Error fetching quiz by ID:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 
 // Update a quiz by ID
 exports.updateQuizById = async (req, res) => {
@@ -87,7 +87,6 @@ exports.submitQuiz = async (req, res) => {
     console.log('User from request:', req.user);
 
     const { quizId, answers } = req.body;
-
     const quiz = await Quiz.findById(quizId);
     if (!quiz) {
       return res.status(404).json({ message: 'Quiz not found' });
@@ -107,15 +106,23 @@ exports.submitQuiz = async (req, res) => {
     const totalQuestions = quiz.question.length;
     const passingScore = Math.floor(totalQuestions / 2);
 
-    const submission = new Submission({
-      userId: req.user.id,
-      quizId,
-      answers,
-      score,
-      pass: score >= passingScore 
-    });
+    const user = await User.findById(req.user.id);
+    const quizIndex = user.quizScores.findIndex(q => q.quizId.toString() === quizId);
 
-    await submission.save();
+    if (quizIndex !== -1) {
+      user.quizScores[quizIndex].score = score;
+      user.quizScores[quizIndex].totalScore = totalQuestions;
+      user.quizScores[quizIndex].pass = score >= passingScore;
+    } else {
+      user.quizScores.push({
+        quizId,
+        score,
+        totalScore: totalQuestions,
+        pass: score >= passingScore
+      });
+    }
+
+    await user.save();
 
     if (score < passingScore) {
       return res.status(400).json({

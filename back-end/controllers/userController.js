@@ -5,6 +5,9 @@ const User = require('../models/users');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
+const UserGroup = require('../models/userGroups');
+const JoinRequests = require('../models/JoinRequests');
+const Groups = require('../models/groups');
 
 const EMAIL_VERIFICATION_TIMEOUT = 60 * 60 * 1000; // 1 hours
 
@@ -281,24 +284,29 @@ exports.login = async (req, res) => {
 };
 
 
+// add user by admin
 exports.addUser = async (req, res) => {
+    const session = await mongoose.startSession();
+
     try {
         if (req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied. Admins only.' });
         }
 
-        const { name, email, password, phone_number, role } = req.body;
-        if (!name || !email || !password || !phone_number || !role) {
-
+        const { name, email, password, phone_number, role, groupId } = req.body;
+        if (!name || !email || !password || !phone_number || !role || !groupId) {
             return res.status(400).json({ message: 'All fields are required' });
         }
-
-
         const exists_user = await User.findOne({ email });
         if (exists_user) {
             return res.status(400).json({ message: 'User already exists' });
         }
+        const group = await Groups.findById(groupId);
+        if (!group) {
+            return res.status(404).json({ message: 'Group not found' });
+        }
 
+        session.startTransaction();
         const newUser = new User({
             name,
             email,
@@ -306,37 +314,48 @@ exports.addUser = async (req, res) => {
             phone_number,
             role,
             isVerified: true,
+            groupId: [{ group_id: groupId }],
         });
 
-        await newUser.save();
+        await newUser.save({ session });
+        const newUserGroup = new UserGroup({
+            user_id: newUser._id,
+            group_id: groupId,
+            status: 'active',
+        });
+        await newUserGroup.save({ session });
+
+        const newJoinRequest = new JoinRequests({
+            user_id: newUser._id,
+            group_id: groupId,
+            status: 'approved',
+            startDate: new Date(),
+        });
+
+        await newJoinRequest.save({ session });
+
+        group.members.push({ user_id: newUser._id });
+
+        await group.save({ session });
+        await session.commitTransaction();
+
+        session.endSession();
+
         res.status(201).json({ message: 'User added successfully', user: newUser });
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+
         console.error('Error adding user: ', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
 
-// get user by token
-exports.getUser = async (req, res) => {
-    try {
-        const userIdFromToken = req.user.id;
-        const user = await User.findById(userIdFromToken);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-        const userResponse = { ...user._doc, password: undefined };
-
-        res.status(200).json(userResponse);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
-    }
-};
 
 
 
 // get user by token
-exports.getUser = async (req, res) => {
+exports.getUserByhimself = async (req, res) => {
     try {
         const userIdFromToken = req.user.id;
         const user = await User.findById(userIdFromToken);
@@ -388,8 +407,12 @@ exports.getUserByid = async (req, res) => {
 // get all user
 exports.getAllUsers = async (req, res) => {
     try {
-        if (req.user.role !== 'admin' && req.user.role !== 'assistant') {
+        if (req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(req.user._id)) {
+            return res.status(400).json({ message: 'Invalid user ID format' });
         }
 
         const users = await User.find().select('-password');
@@ -399,6 +422,9 @@ exports.getAllUsers = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+
+
 
 // update user by admin => role and user can edit all data expect role
 exports.updateUser = async (req, res) => {

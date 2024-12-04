@@ -355,7 +355,9 @@ exports.evaluateTask = async (req, res) => {
 exports.getLectureWithTasksAndUsers = async (req, res) => {
   try {
     const { lectureId } = req.params;
-
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Aess denied' });
+    }
     const lecture = await Lectures.findById(lectureId)
       .populate('submittedBy', 'name email')
       .populate('attendees', 'name email');
